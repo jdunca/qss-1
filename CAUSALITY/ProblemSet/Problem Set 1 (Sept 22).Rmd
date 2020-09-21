@@ -89,7 +89,9 @@ avg.perf <- function(df, parameter){
 }
  avg.perf(germany.2019, "Conservative")
 ```
-Use that function to calculate the total vote share of each party family in the 2019 European elections in Germany.
+There is no way that I know to calculate total votes with this information but the above function calculates vote share by party family.
+
+####Use that function to calculate the total vote share of each party family in the 2019 European elections in Germany.
 ```{r}
 ## I modified the above function for efficiency.
 avg.perf.all <- function(df){
