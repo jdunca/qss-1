@@ -1,0 +1,195 @@
+---
+title: "Problem Set 1 (Sept 22)"
+author: "Jamie Duncan"
+date: "18/09/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Problem Set 1
+
+```{r}
+library(here)
+here()
+```
+
+##Section 1
+```{r}
+options(tinytex.verbose = TRUE) #not sure what this does...
+parlgov <- read.csv("parlgov.csv", stringsAsFactors = TRUE) #loading the data set, which I downloaded into my working directory
+```
+
+###Question 1
+#### How many countries are there in the data?
+```{r}
+dim(table(parlgov$country))#created a table with the variable of interest and used the dimension function to tell me how many table entries there are
+```
+#### And how many party families?
+```{r}
+dim(table(parlgov$party_family))#same logic as above
+```
+
+#### What is the average seat share (seats divided by seat total) in the data?
+```{r}
+parlgov$seatshare <- parlgov$seats / parlgov$seats_total 
+##created new column "seatshare" as the result of seats divided by total seats
+mean(parlgov$seatshare, na.rm = TRUE)
+##calculated mean, removing null entries (thanks to the 'help' function)
+```
+
+Was the halfdecade variable coded correctly?
+```{r}
+table(parlgov$halfdecade)
+##took a peek at the variable using a table, Crtl+F'd in the textbook to verify accuracy
+```
+Yes. The rounded parentheses exclude the first number and the square brackets include the last. This is a slightly counter-intuitive but functional (in way I can't yet explain) way of expressing 1950-54, 1955-1959, and so on. 
+
+###Question 2
+####Create a separate data frame that only includes the 2015 Canadian election.
+
+```{r}
+can2015 <- parlgov[parlgov$country == "Canada" & parlgov$year == 2015, ] 
+##used indexing to create subset with results related to the 2015 election in Canada
+```
+
+####Are there any coding decisions the data set’s authors made with which you disagree?
+
+Some entries in the "party_name" field are labeled with characters that hold significance in R like "|" "["
+
+###Question 3
+####Create a separate data frame that only includes elections after 2014.
+
+```{r}
+after2014 <- parlgov[parlgov$year > 2014, ]
+##used indexing to create subset with elections after 2014
+```
+
+####Across the whole range of elections included here, which party got the highest vote share? And what was their vote share? How about seat share? What kind of election was that?
+```{r}
+sortedafter2014 <- after2014[order (after2014$vote_share, decreasing = TRUE), ] ## ordered by vote share 
+head(sortedafter2014) #show me the top of the data frame
+
+```
+In the 2017 Maltese general election, the Malta Labour Party got the highest vote share across the whole range of elections since 2014 with 55.04% of the votes. This afforded the party 55.22 percent of seats in the Maltese House of Representatives.
+
+###Question 4
+#### Define each party family's average performance as EQ -- /E/ is the total number of elections, /N/ is the number of parties in the party family competing in election/i/, and /Vij/ is their vote share in election /i/
+
+#### Write a function that takes as arguments a data frame with the results from a single election and the name of a party family. It should return the total votes for that party family in that election.
+
+```{r}
+
+##this is a function that takes the results from a single election and the name of the party family
+avg.perf <- function(df, parameter){  
+  s1.avg.perf <- ifelse(df$party_family == parameter, 1, 0)
+  return(aggregate(df$vote_share , by = list(s1.avg.perf), sum, na.rm = TRUE)[2, 2])
+}
+ avg.perf(germany.2019, "Conservative")
+```
+Use that function to calculate the total vote share of each party family in the 2019 European elections in Germany.
+```{r}
+## I modified the above function for efficiency.
+avg.perf.all <- function(df){
+  for(i in unique(df$party_family)){ #replaced the parameter input with a for() loop
+    return(aggregate(df$vote_share, by = list(df$party_family), sum, na.rm = TRUE)) #modified return to refer to df
+  }
+}
+
+avg.perf.all(germany.2019)
+```
+
+####Describe conceptually how you would go about calculating the average performance of each party family in each half decade.
+
+Similar to above, I would include an addition nested "for()" loop to run "avg.perf.all" for each unique halfdecade row entry.
+
+###Question 5
+#### Create a data set containing only radical right parties and only elections in which those parties received more than 5% of the vote.
+
+```{r}
+rad.right <- parlgov[parlgov$party_family == "Right-wing" & parlgov$vote_share > 5, ]
+rad.right <- na.omit(rad.right)
+```
+
+#### Create a barplot showing how many such party elections fall in each half decade--label the y-axis.
+
+```{r}
+
+##wrote a function to increase efficiency fro the next question
+
+fam.elec.plot <- function(df, parameter){ # function takes a data.frame (parlgov) and a parameter (party_family)
+  fam.elec_a <- df[df$party_family == parameter & df$vote_share > 5, ] #subsets the dataframe by the parameter, excluding instances with a vote share less than 5%
+  fam.elec_b <- na.omit(fam.elec_a) #omits NAs
+  fam.elec_un <- fam.elec_b[unique(fam.elec_b$election_id), ] #cuts out duplicate election ids in case multiple far-right parties achieved votes shares of higher that 5% (we are just counting elections in which this happened not how many parties managed to do it)
+  fam.elec_tab <- table(fam.elec_un$election_id, fam.elec_un$halfdecade) #creating a table with election_ids and halfdecades
+  return(barplot(fam.elec_tab, main = paste("Elections where party family achieved > 5% of votes:", parameter), xlab = "Halfdecade", ylab = "Elections")) #outputting a barplot
+}
+
+fam.elec.plot(parlgov, "Right-wing") #using function to answer first part of this question
+
+```
+
+#### Do the same for the communist and conservative parties.
+
+```{r}
+fam.elec.plot(parlgov, "Communist/Socialist") #using function for the second part of this question
+fam.elec.plot(parlgov, "Conservative")
+```
+
+
+#### How would you interpret these? Does seeing the second change your interpretation?
+Looking at only right wing parties may indicate that the popularity of the radical right in Europe is on the rise. Adding the chart with communist parties might lead one to believe that European politics is becoming more polarized generally. Thirdly, the conservative chart indicates that despite radical parties gaining traction in more elections, one can also observe that in far more European elections that more moderate Conservative are A) far more likely to earn at least 5% of votes in an election and B) are gaining traction relative to past decades.
+
+###Question 6
+####Normalize the previous results using the total number of elections in each half decade.
+####Produce new plots and save them as pdf files
+
+##Section 2
+###Question 1
+#### Load the data & check with summary() funtion.
+```{r}
+options(tinytex.verbose = TRUE)
+survey <- read.csv("survey.csv", stringsAsFactors = TRUE)
+```
+#### Which variable has missing data? Also, check the number of missing observations (including missing values)
+```{r}
+summary(survey)
+```
+"ideology" has missing values.
+
+###Question 2
+####Calculate the mean ideology score by year that respondents were born in.
+
+```{r}
+aggregate(survey$ideology, by = list(survey$year), mean, na.rm = TRUE) #aggregate ideology by year while removing NAs
+```
+####Briefly interpret the result.
+Over the three years of birth documented, left wing sentiment increases by about 0.05 out of 5 or roughly 1%. I would interpret this as a negligible change.
+
+###Question 3
+####Estimate the sample average treatment effect on ideology. In this question we pool all years. Briefly interpret the result.
+
+```{r}
+drafted <- survey[survey$draft == 1, ] #subset for drafted
+drafted.ideo <- mean(drafted$ideology, na.rm = TRUE) #average ideology for drafted
+safe <- survey[survey$draft == 0, ] #subset for non-drafted
+safe.ideo <- mean(safe$ideology, na.rm = TRUE)#average ideology for non-drafted
+dim.sate <- drafted.ideo - safe.ideo #difference in means SATE is equal to average treated minus average non-treated
+print(dim.sate) #print result
+```
+
+Using the difference in means method of calculating sample average treatment effect (SATE), we can see a small negative treatment effect, whereby those drafted tend to be very slightly more conservative by roughly 0.5%. This result could be accounted for by confounding variables such as age or state.
+
+###Question 4
+#### Write a function to estimate the sample average treatment effect on ideology for each state (pooling all years)
+
+
+
+#### Briefly interpret the result
+
+###Question 5
+Is this a valid approach to policy making? (two to four sentences)
+
+
