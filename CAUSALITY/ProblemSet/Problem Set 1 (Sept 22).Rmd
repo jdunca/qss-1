@@ -182,14 +182,26 @@ dim.sate <- drafted.ideo - safe.ideo #difference in means SATE is equal to avera
 print(dim.sate) #print result
 ```
 
-Using the difference in means method of calculating sample average treatment effect (SATE), we can see a small negative treatment effect, whereby those drafted tend to be very slightly more conservative by roughly 0.5%. This result could be accounted for by confounding variables such as age or state.
+Using the difference in means method of calculating sample average treatment effect (SATE), we can see a small negative treatment effect, whereby those drafted tend to be very slightly more conservative by under 0.03 out of 5 possible points. This very small difference could be complicated by confounding variables such as age or state.
 
 ###Question 4
-#### Write a function to estimate the sample average treatment effect on ideology for each state (pooling all years)
+#### Write a function to estimate the sample average treatment effect on ideology for each state (pooling all years). Briefly interpret the results.
 
+```{r echo=FALSE, paged.print=FALSE}
+sate.state <- function (df){ #beginning function with data.frame input
+  drafted <- survey[df$draft == 1, ] #subsetting 
+  not.drafted <- survey[df$draft == 0, ]
+  drafted.state.avg <- aggregate(drafted$ideology, by = list(drafted$state), mean, na.rm = TRUE)
+  not.drafted.state.avg <- aggregate(not.drafted$ideology, by = list(not.drafted$state), mean, na.rm = TRUE)
+  treat.list <- list(drafted = drafted.state.avg, not.drafted = not.drafted.state.avg)
+  treat.list$sate <- treat.list$drafted[, 2] - treat.list$not.drafted[, 2]
+  return(treat.list)
+} 
+sate.state(survey) 
 
+```
+For Colorado, the difference in means SATE is roughly 0.045 meaning those drafted were slightly more liberal than those not drafted. We see the opposite in Oregon, with a difference in means SATE of -0.061, where those drafted were slightly more likely to be 
 
-#### Briefly interpret the result
 
 ###Question 5
 Is this a valid approach to policy making? (two to four sentences)
