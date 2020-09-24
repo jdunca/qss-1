@@ -1,5 +1,7 @@
 library(tidyverse)
+tinytex::install_tinytex()
 head(parlgov)
+pdfcrop
 
 dim(table(parlgov$country))
 
@@ -146,7 +148,25 @@ avg.perf.all <- function(df){
     drafted.ideo <- mean(drafted$ideology, na.rm = TRUE)
     safe.ideo <- mean(safe$ideology, na.rm = TRUE)
     
-    
+ 
+       
+sate.state <- function (df){
+  drafted <- survey[df$draft == 1, ]
+  safe <- survey[df$draft == 0, ]
+  drafted.state.avg <- aggregate(drafted$ideology, by = list(drafted$state), mean, na.rm = TRUE)
+  safe.state.avg <- aggregate(safe$ideology, by = list(safe$state), mean, na.rm = TRUE)
+  treat.list <- list(drafted = drafted.state.avg, safe = safe.state.avg)
+  treat.list$sate <- treat.list$drafted[, 2] - treat.list$safe[, 2]
+  return(treat.list)
+} 
+sate.state(survey)    
+
+sate.state <- function (df){
+  return
+}
+sate.state(survey)   
+
+?tapply
     
     
 sate.state <- function(df){
@@ -159,25 +179,84 @@ sate.state <- function(df){
   return(state.ideo)
 }   
 
-data.frame(table(parlgov$election_id, parlgov$halfdecade))
-
-sate.state(survey)
-
-length(parlgov$election_id)
-
-summary(survey$state)
-
-?aggregate
+##wrote a function to increase efficiency for the next question
 
 fam.elec.plot <- function(df, parameter){ # function takes a data.frame (parlgov) and a parameter (party_family)
   fam.elec_a <- df[df$party_family == parameter & df$vote_share > 5, ] #subsets the dataframe by the parameter, excluding instances with a vote share less than 5%
   fam.elec_b <- na.omit(fam.elec_a) #omits NAs
   fam.elec_un <- fam.elec_b[unique(fam.elec_b$election_id), ] #cuts out duplicate election ids in case multiple far-right parties achieved votes shares of higher that 5% (we are just counting elections in which this happened not how many parties managed to do it)
-  fam.elec_un$norm.vals <- length(fam.elec_un$election_id) / length(df)
   fam.elec_tab <- table(fam.elec_un$election_id, fam.elec_un$halfdecade) #creating a table with election_ids and halfdecades
   return(barplot(fam.elec_tab, main = paste("Elections where party family achieved > 5% of votes:", parameter), xlab = "Halfdecade", ylab = "Elections")) #outputting a barplot
 }
 
-?tapply
+fam.elec.plot(parlgov, "Right-wing") #using function to answer first part of this question
 
 
+result1 <- df %>%
+  filter(vote_share >= 5) %>%
+  filter(party_family != "NA") %>%
+  group_by(party_family, halfdecade) %>%
+  summarize(unique_elems = n_distinct(election_id))
+result1
+
+result2 <- result1 %>%
+  group_by(halfdecade) %>%
+  mutate(Frequency = sum(unique_elems)) %>%
+  mutate(election_norm = unique_elems/Frequency)
+
+result3 <- result2 %>%
+  filter(party_family == "Agrarian") %>%
+  ggplot(aes(y = election_norm, x = halfdecade)) +
+  geom_col()
+
+result3
+
+
+parlgov %>%
+  group_by(halfdecade) %>%
+  summarize(unique_elems = n_distinct(election_id))
+
+
+length(unique(parlgov$election_id))/ length(unique(parlgov$halfdecade))
+plot.norm <- length(unique(df$election_id))/ length(unique(df$halfdecade))
+
+
+
+
+fam.elec.norm(parlgov, "Right-wing") #using function to answer first part of this question
+
+ 
+?aggregate
+?ave
+aggregate(formula = cbind(mpg, wt) ~ cyl + gear, 
+          data = mtcars, 
+          FUN = function(x){
+            c(mean = mean(x), sd = sd(x))
+          })
+
+length(unique(parlgov$election_id))
+
+out <- aggregate(parlgov$halfdecade), by = list(parlgov$election_id), table, na.rm = TRUE)
+out
+
+library(tidyverse)
+
+result1 <- parlgov %>%
+  filter(vote_share >= 5) %>%
+  filter(party_family != "NA") %>%
+  group_by(party_family, halfdecade) %>%
+  summarize(unique_elems = n_distinct(election_id))
+
+result2 <- result1 %>%
+  group_by(halfdecade) %>%
+  mutate(Frequency = sum(unique_elems)) %>%
+  mutate(election_norm = unique_elems/Frequency)
+
+result3 <- result2 %>%
+  filter(party_family == "Agrarian") %>%
+  ggplot(aes(y = election_norm, x = halfdecade)) %>%
+  geom_col()
+result3
+
+install.packages("kableExtra")
+          

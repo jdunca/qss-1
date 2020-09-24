@@ -1,0 +1,132 @@
+---
+title: "Tutorial"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(here)
+afghan <- read.csv("afghan.csv")
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+Summarize variables of interest
+```{r}
+summary(afghan$age)
+summary(afghan$educ.years)
+summary(afghan$employed)
+afghan$income <- as.factor(afghan$income)
+summary(afghan$income)
+
+```
+
+Analyze violence experienced by ISAF and Taliban
+```{r}
+prop.table(table(ISAF = afghan$violent.exp.ISAF, Taliban = afghan$violent.exp.taliban))
+prop.table(table(ISAF = afghan$violent.exp.ISAF, Taliban = afghan$violent.exp.taliban, exclude = NULL))
+```
+
+
+```{r}
+ISAF.tb <- tibble(table(ISAF = afghan$violent.exp.ISAF))
+ISAF.tb
+```
+
+Make a bar plot for ISAF
+```{r}
+ISAF.pt <- prop.table(table(ISAF = afghan$violent.exp.ISAF, exclude = NULL))
+barplot( ISAF.pt, 
+         names.arg = c("no harm", "harm", "nonresponse"), 
+         main = "Civilian victimization by ISAF",
+         xlab = "Response Category",
+         ylab = "proportion of respondents", ylim = c(0, 0.7))
+
+
+```
+
+Make a bar plot for Taliban
+```{r}
+Taliban.pt <- prop.table(table(Taliban = afghan$violent.exp.taliban, exclude = NULL))
+barplot( Taliban.pt, 
+         names.arg = c("no harm", "harm", "nonresponse"), 
+         main = "Civilian victimization by Taliban",
+         xlab = "Response Category",
+         ylab = "proportion of respondents", ylim = c(0, 0.7))
+```
+
+Create a histogram to measure the density distribution of the age category
+
+```{r}
+hist(afghan$age, freq = FALSE, ylim = c(0, 0.04), xlab = "age", main = "Distribution of respondent's age")
+```
+
+make a histogram for aftghan education years
+
+```{r}
+hist(afghan$educ.years, freq = FALSE, 
+     breaks = seq(from = -0.5, to = 18.5, by = 1),
+     xlab = "Years of education", 
+     main = "Distribution of respondent's education")
+##add a text label at (x, y) = (3, 0.5)
+text(x = 3, y = 0.5, "median")
+##add a vertical line representing median
+abline(v = median(afghan$educ.years))
+
+```
+
+making a boxplot
+
+```{r}
+boxplot(afghan$age, main = "Distribution of age", ylab = "age", ylim = c(10, 80))
+```
+
+box plot with multiple variables
+
+```{r}
+boxplot(educ.years ~ province, data = afghan,
+        main = "education by province", ylab = "years of education")
+```
+
+how does this compare to violence experienced by province?
+
+```{r}
+tapply(afghan$violent.exp.taliban, afghan$province, mean, na.rm = TRUE)
+tapply(afghan$violent.exp.ISAF, afghan$province, mean, na.rm = TRUE)
+```
+
+sample validation 
+```{r}
+##load village data
+afghan.village <- read_csv("afghan-village.csv")
+##boxplots for altitude
+boxplot(altitude ~ village.surveyed, data = afghan.village, 
+        ylab = "Altitude (m)", names = c("nonsampled", "sampled"))
+boxplot(log(population) ~ village.surveyed, data = afghan.village, 
+        ylab = "log.population", names = c("nonsampled", "sampled"))
+```
+
+calculating non-response rates
+
+```{r}
+tapply(is.na(afghan$violent.exp.taliban), afghan$province, mean)
+tapply(is.na(afghan$violent.exp.ISAF), afghan$province, mean)
+```
+
+list response for sensitive items
+
+```{r}
+mean(afghan$list.response[afghan$list.group == "ISAF"]) - mean(afghan$list.response[afghan$list.group == "control"])
+```
+
+floor and ceiling effects
+```{r}
+table(response = afghan$list.response, group = afghan$list.group)
+```
+
+
+
+
+
+
