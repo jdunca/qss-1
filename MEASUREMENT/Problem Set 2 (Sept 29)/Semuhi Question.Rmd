@@ -1,0 +1,69 @@
+---
+title: "Semuhi Question"
+author: "Jamie Duncan"
+date: "25/09/2020"
+header-includes:
+  - \usepackage{placeins}
+  - \usepackage{ragged2e}
+urlcolor: blue
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(knitr)
+library(kableExtra)
+library(tinytex)
+
+boston <- read_csv("boston.csv")
+prop.AJPS <- read_csv("proposalAJPS.csv")
+```
+# Section 1
+## Question 1
+### The benefit of randomly assigning individuals to the treatment or control groups is that the two groups should be similar, on average, in terms of their covariates. This is referred to as covariate balance. 
+
+### 1.1.1: Show that the treatment and control groups are balanced with respect to the income variable (income) by comparing its distribution between those in the treatment group and those in the control group.
+
+```{r}
+summary(as.factor(boston$income)) # looking at the data
+summary(boston$income)
+mean(boston$male)
+```
+
+```{r}
+treated <- subset(boston, subset = (treatment == 1))# subset into treated 
+not_treated <- subset(boston, subset = (treatment == 0))#and not treated
+```
+
+```{r}
+summary(treated$income) #summary of each
+summary(not_treated$income)
+```
+
+```{r}
+median(treated$income) # median income for treated pop
+median(not_treated$income)  #median income for not treated
+
+median(treated$income) - median(not_treated$income) #subtract one from the other
+
+#median is the best single number to compare income because it is less sensitive to outliers (though looking at all of the numbers is important to see which direction outliers skew the data)
+```
+
+
+### 1.1.2: Also, compare the proportion of males (male) in the treatment and control groups. 
+
+```{r warning=FALSE}
+##in this case we use mean because this is a boolean variable meaning that median can only be 1, 0, or 0.5
+mean(treated$male) - mean(not_treated$male)
+```
+
+```{r warning=FALSE}
+treated.men <- data.frame(prop.table(table(male = boston$male, treatment = boston$treatment)))
+```
+
+```{r warning=FALSE}
+treated.men[4, ] - treated.men[2, ]
+```
+

@@ -22,91 +22,312 @@ prop.AJPS <- read_csv("proposalAJPS.csv")
 ```
 # Section 1
 ## Question 1
-### The benefit of randomly assigning individuals to the treatment or control groups is that the two groups should
-be similar, on average, in terms of their covariates. This is referred to as covariate balance. 
+### The benefit of randomly assigning individuals to the treatment or control groups is that the two groups should be similar, on average, in terms of their covariates. This is referred to as covariate balance. 
 
-### 1.1.1: Show that the treatment and control groups are balanced with respect to the income variable (income) by comparing its distribution between those in the treatment group and those in the control group. 
+### 1.1.1: Show that the treatment and control groups are balanced with respect to the income variable (income) by comparing its distribution between those in the treatment group and those in the control group.
+
+```{r}
+summary(as.factor(boston$income)) # looking at the data
+summary(boston$income)
+mean(boston$male)
+```
+
+```{r}
+treated <- subset(boston, subset = (treatment == 1))# subset into treated 
+not_treated <- subset(boston, subset = (treatment == 0))#and not treated
+
+```
+
+```{r}
+summary(treated$income) #summary of each
+summary(not_treated$income)
+```
+
+```{r}
+median(treated$income) # median income for treated pop
+median(not_treated$income)  #median income for not treated
+
+median(treated$income) - median(not_treated$income) #subtract one from the other
+
+#median is the best single number to compare income because it is less sensitive to outliers (though looking at all of the numbers is important to see which direction outliers skew the data)
+```
+
+
 ### 1.1.2: Also, compare the proportion of males (male) in the treatment and control groups. 
 
+```{r warning=FALSE}
+##in this case we use mean because this is a boolean variable meaning that median can only be 1, 0, or 0.5
+mean(treated$male)
+mean(not_treated$male)
+
+mean(treated$male) - mean(not_treated$male)
+```
+
+```{r warning=FALSE}
+treated.men <- data.frame(prop.table(table(male = boston$male, treatment = boston$treatment)))
+treated.men
+```
+
+```{r warning=FALSE}
+treated.men[4, ] - treated.men[2, ]
+```
+
 ### 1.1.3: Interpret these two numbers.
+-Distribution is largely even.
+-the median income of the treated and non treated participants is perfectly even,. On average, it appears higher earning people were less likely to participate
+- more non-male identifying people participated than males
+
 ## Question 2
-### Individuals in the experiment were asked a series of questions both at the beginning and the end of the
-experiment. One such question was “Do you think the number of immigrants from Mexico who are permitted
-to come to the United States to live should be increased, left the same, or decreased?” The response
-to this question prior to the experiment is in the variable numberim.pre. The response to this question
-after the experiment is in the variable numberim.post. In both cases the variable is coded on a 1 – 5
-scale. Responses with values of 1 are inclusionary (pro-immigration) and responses with values of 5 are
+### Individuals in the experiment were asked a series of questions both at the beginning and the end of the experiment. One such question was “Do you think the number of immigrants from Mexico who are permitted to come to the United States to live should be increased, left the same, or decreased?” The response to this question prior to the experiment is in the variable numberim.pre. The response to this question after the experiment is in the variable numberim.post. In both cases the variable is coded on a 1 – 5 scale. Responses with values of 1 are inclusionary (pro-immigration) and responses with values of 5 are
 exclusionary (anti-immigration). 
 
 ### 1.2.1: Compute the average treatment effect on the change in attitudes about immigration. That is, how does the mean change in attitudes about immigration policy for those in the control group compare to those in the treatment group.
 
+```{r}
+
+sate <- function(df){
+treated <- subset(df, subset = (treatment ==1 ))
+not_treated <- subset(df, subset = (treatment == 0))
+treated.shift <- (mean(treated$numberim.post - treated$numberim.pre, na.rm = TRUE))
+nottreated.shift <- (mean(not_treated$numberim.post - not_treated$numberim.pre, na.rm = TRUE))
+sate <- treated.shift - nottreated.shift
+return(sate)
+}
+
+sate(boston)
+
+
+```
+
 ### 1.2.2: Interpret the result.
+The participants treated with hispanic confederates on the train platform shifted their views on immigration policy slightly towards inclusion, whereas those not treated expressed more exclusionary tendencies after the 10 days. This contributed to a SATE of roughly -0.27, indicating that those treated are marginally more likely to shift their views toward inclusion.
 
 ## Question 3
-### Does having attended college influence the effect of being exposed to outsiders on exclusionary attitudes?
-Another way to ask the same question is this: is there evidence of a differential impact of treatment, conditional on attending college versus not attending college? 
+### Does having attended college influence the effect of being exposed to outsiders on exclusionary attitudes? Another way to ask the same question is this: is there evidence of a differential impact of treatment, conditional on attending college versus not attending college? 
 
-### 1.3.1: Calculate the necessary quantities to answer this questionand interpret the results. 
+### 1.3.1: Calculate the necessary quantities to answer this question and interpret the results. 
 
-### 1.3.2: Consider the average treatment effect for those who attended college and then those who did not.
+```{r}
+college <- subset(boston, boston$college == 1)
+no.college <- subset(boston, boston$college == 0)
+
+sate <- function(df){
+treated <- subset(df, subset = (treatment ==1))
+not_treated <- subset(df, subset = (treatment == 0))
+treated.shift <- (mean(treated$numberim.post - treated$numberim.pre, na.rm = TRUE))
+nottreated.shift <- (mean(not_treated$numberim.post - not_treated$numberim.pre, na.rm = TRUE))
+sate <- treated.shift - nottreated.shift
+return(sate)
+}
+
+sate(college)
+sate(no.college)
+
+```
 
 ## Question 4
 
 ### Repeat the same analysis as in the previous question but this time with respect to age and ideology. 
 
-### 1.4.1: For age, divide the data based on its quartile and compute the average treatment effect within each of the resulting four groups. 
+### 1.4.1: For age, divide the data based on its quartile and compute the average treatment effect within each of the resulting four groups.
+
+```{r}
+quantile(boston$age)
+```
+
+```{r}
+boston$age_grp <- boston$age
+boston$age_grp[boston$age_grp >0 & boston$age_grp <= 33] <- "20-33"
+boston$age_grp[boston$age_grp >= 34 & boston$age_grp <= 43] <- "34-43"
+boston$age_grp[boston$age_grp >= 44 & boston$age_grp <= 52] <- "44-52"
+boston$age_grp[boston$age_grp >= 53] <- "53+"
+
+summary(as.factor(boston$age_grp))
+
+```
+
+```{r}
+
+ag1 <- subset(boston, boston$age_grp == "20-33")
+ag2 <- subset(boston, boston$age_grp == "34-43")
+ag3 <- subset(boston, boston$age_grp == "44-52")
+ag4 <- subset(boston, boston$age_grp == "53+")
+
+data.frame("20 to 33" = sate(ag1),"34 to 43" = sate(ag2), "44 to 52" = sate(ag3),"53 plus" = sate(ag4))
+```
+
 ### 1.4.2: For ideology, compute the average treatment effect within each value. 
+
+```{r}
+
+id1 <- subset(boston, boston$ideology == 1)
+id2 <- subset(boston, boston$ideology == 2)
+id3 <- subset(boston, boston$ideology == 3)
+id4 <- subset(boston, boston$ideology == 4)
+id5 <- subset(boston, boston$ideology == 5)
+
+data.frame("1" = sate(id1), "2" = sate(id2), "3" = sate(id3), "4" = sate(id4), "5" = sate(id5))
+
+```
 
 ### 1.4.3: What patterns do you observe? Give a brief substantive interpretation of the results.
 
 # Section 2
 ## Question 1
-### 2.1.1: How many members of parliament are in the data? 
-
+### 2.1.1: How many members of parliament are in the data?
+```{r warning=FALSE}
+length(prop.AJPS$election)
+```
 ### 2.1.2: Why is it not simply 338 x 2 = 676?
+
+The paper sampled from incumbent MPs. Also the number of seats in the House of Commons is constantly shifting; there are 336 right now according to ourcommons.ca
 
 ### 2.1.3: What proportion of the observations in the data are members of the government party?
 
+```{r}
+prop.table(table(prop.AJPS$gov))
+
+mean(prop.AJPS$gov)
+```
+
 ### 2.1.4: What proportion are female? 
-### 2.1.5: How much does a typical member spend on reelection? 
+```{r}
+prop.table(table(prop.AJPS$female))
+```
+
+### 2.1.5: How much does a typical member spend on reelection?
+
+```{r}
+mean(prop.AJPS$spending[prop.AJPS$spending >= 0])
+```
+
 
 ### 2.1.6: Is there anything about the spending data that is odd?
+```{r}
+summary(prop.AJPS$spending[prop.AJPS$spending < 0 ])
+length(prop.AJPS$spending[prop.AJPS$spending < 0 ])
+```
 
 ## Question 2
-### First, we will check to see if the randomization procedure appears to have been fair. Calculate the differece between the proportion of MPs who were able to propose legislation under this procedure according to
-whether they are female. That is, a government MP, and whether their vote share in the previous election
+### First, we will check to see if the randomization procedure appears to have been fair. Calculate the difference between the proportion of MPs who were able to propose legislation under this procedure according to whether they are female. That is, a government MP, and whether their vote share in the previous election
 was greater than or less than the median.
+
+Semuhi's instructions to Hayley as posted in Slack: Calculate the difference between the proportion of MPs who were able to propose legislation under this procedure according to 1) whether they are female, 2) whether they are a government MP, and 3) whether their vote share in the previous election was greater than or less than the median.
+
+```{r}
+rand.prop <- function (df){
+ p2p1 <- subset(df, p2p == 1)
+ p2p0 <- subset(df, p2p == 0)
+ prop.fem <- mean(p2p1$female) - mean(p2p0$female)
+ prop.gov <- mean(p2p1$gov) - mean(p2p0$gov)
+ median.prev <- median(df$previous_vote)
+ prop.vs <- (mean(p2p1$previous_vote) - median.prev) - (mean(p2p0$previous_vote) -  median.prev)
+ out <- list(prop.fem, prop.gov, prop.vs)
+ names <- c("fem diff", "gov diff", "median diff")
+ names(out) <- names
+ return(out)
+}
+rand.prop(prop.AJPS)
+
+```
 
 ## Question 3
 
 ### 2.3.1: Calculate the mean vote share for MPs able to introduce legislation under this procedure and those unable to do so. 
+
+```{r}
+prop.AJPS$vote_share <- (prop.AJPS$previous_vote + prop.AJPS$current_vote) / 2
+
+vs.by.p2p <- aggregate(prop.AJPS$vote_share, list(prop.AJPS$p2p), mean)
+vs.by.p2p
+
+
+```
+
 ### 2.3.2: How big is the difference?
 
+```{r}
+vs.by.p2p[2, 2] - vs.by.p2p[1, 2]
+
+```
+
+
 ### 2.3.3: Create a table of the power to propose and whether the MP won reelection.
+
+```{r}
+data.frame(prop.table(table(winner = prop.AJPS$winner, p2p = prop.AJPS$p2p)))
+```
 
 ### 2.3.4: Did the power to propose help MPs win reelection? 
 
 ## Question 4
 
-### 2.4.1: Create two new data frames, one with just MPs in the governing party and one with just members of the
-opposition. 
+### 2.4.1: Create two new data frames, one with just MPs in the governing party and one with just members of the opposition. 
 
+```{r}
+gov <- data.frame(subset(prop.AJPS, gov == 1))
+opp <- data.frame(subset(prop.AJPS, gov == 0))
+
+gov
+opp
+```
 ### 2.4.2: Now repeat what you did for Question 2 on each of these data frames. 
+
+```{r}
+rand.prop(gov)
+
+```
+
+```{r}
+rand.prop(opp)
+
+```
 
 ### 2.4.3: Is there a big difference in vote share or win share across the power to propose in either data frame? Do the differences look big?'
 
 ## Question 5
-### One possibility is that government MPs did better and opposition MPs did worse when they got proposal
-power because they draw lower quality opponents (as measured by previously holding electoral office). 
+### One possibility is that government MPs did better and opposition MPs did worse when they got proposal power because they draw lower quality opponents (as measured by previously holding electoral office). 
 
 ### 2.5.1: Did MPs with proposal power draw lower quality opponents in the next election? 
 
-### 2.5.2: Did this vary by whether they
-were in the government party?
+```{r}
+tapply(prop.AJPS$quality, prop.AJPS$p2p, mean)
 
-### Another possibility is that proposal power shaped the MPs ability to fundraise, by letting them appear to be
-bringing home the pork. 
+```
+
+
+```{r}
+prop.table(table(quality = prop.AJPS$quality, p2p = prop.AJPS$p2p))
+```
+
+
+### 2.5.2: Did this vary by whether they were in the government party?
+```{r}
+tapply(gov$quality, gov$p2p, mean) - tapply(opp$quality, opp$p2p, mean)
+```
+
+
+### Another possibility is that proposal power shaped the MPs ability to fundraise, by letting them appear to be bringing home the pork. 
 
 ### 2.5.3: Did proposal power lead MPs to spend more or less money? Rather than answering this with just a difference in means, create a boxplot for each of four groups based on the 2x2 of government vs. opposition and proposal power and no proposal power. 
+
+```{r}
+summary(spend.clean$spending)
+summary(prop.AJPS$spending)
+```
+
+
+```{r warning=FALSE}
+spend.clean <- subset(prop.AJPS, spending >= 0)
+
+par(mfrow=c(1,2))
+plot1 <- boxplot(log(spending) ~ p2p, spend.clean, 
+ ylab = "Spending(log)", names = c("Prop", "No Prop"),
+ ylim = c(10,11.5), na.rm = T)
+plot2 <- boxplot(log(spending) ~ gov, spend.clean, 
+ ylab = "Spending (log)", names = c("Gov", "Non-gov"),
+ ylim = c(10, 11.5), na.rm = T)
+
+```
 
 ### 2.5.4: Provide a clear description as if it is in a paper (“This figure shows that. . . ”)
