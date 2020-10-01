@@ -1,0 +1,98 @@
+---
+title: "Problem Set 3 (Oct. 6)"
+author: "Jamie Duncan"
+date: "30/09/2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(MASS)
+fraud <- read_csv("fraud2018.csv")
+GoT.grads <- read_csv("GoTAcademicMkt.csv")
+```
+# Section 1
+## Question 1
+##### Suppose that all candidates are well-published and well-equipped, therefore the probability of getting an offer is equal for each candidate. Assume that there is no spousal hire, nepotism, identity-based discrimination, or any special considerations. Offers are made all at once. What is the probability that at least one graduate of Braavos University would be employed?
+
+I need to:
+ - calculate the the probability of any one person getting hired.
+ - calculate probability that a candidate is chosen from a school with x number of graduates
+
+```{r}
+birthday <- function(k){
+  logdenom <- k * log(365) + lfactorial(365 - k)
+  lognumer <- lfactorial(365)
+  pr <- 1 - exp(lognumer - logdenom)
+  return(pr)
+}
+birthday(23)
+
+chosenones <- function(k){
+  logdenom <- k * log(150) + lfactorial(150 - k)
+  lognumer <- lfactorial(150)
+  pr <- 1 - exp(lognumer - logdenom)
+  return(pr)
+}
+chosenones(5)
+
+comb.chosen <- lfactorial(150)/lfactorial(150-5) # the total number of combinations without repetition (we don't care what order the candidates are hired in because they will all be hired at once but we assume one candidate can't hold two jobs)
+
+
+
+
+
+
+```
+
+## Question 2
+##### Repeat the question above using a Monte Carlo simulation. For reproducibility, use set.seed(123).
+
+set up a monte carlo sim:
+ - specify number of sims
+ - create a counter
+  - create a for loop 
+  - specify sample
+
+
+## Question 3
+##### What is the probability that only the graduates of Institute of Dorn would be employed? Would you suspect nepotism or special treatment?
+## Question 4
+##### Now suppose that the hiring committee holds five consecutive meetings and at each round, they decide on who to make an offer. You know that Braavos University offers a special sequence of quantitative methods classes. Therefore, the probability of getting an offer for each graduate of Braavos University is twice the probability for who did not receive such training at each round. Calculate the probability that at least one graduate of Braavos University would be employed.
+
+#Section 2
+## Question 1
+
+##### To analyze the 2018 Turkish election results, first compute Erdogan’s vote share as a proportion of the voters who turned out. Identify the 10 most frequently occurring fractions for the vote share. Then create a histogram that sets the number of bins to the number of unique fractions, with one bar created for each uniquely observed fraction, to differentiate between similar fractions like 1/2 and 51/
+100. This can be done by using the breaks argument in the hist function. The intuition behind this analysis is that if the frequency of coarse vote-shares is high (such as 0.5, 0.6, 0.75), then we might suspect that the results are fabricated.
+
+```{r}
+fraud$vote_share <- fraud$n_winner/ fraud$n_turnout
+
+fraud1 <- fraud %>%
+    arrange(desc(erd.vote_share))
+  
+fraud2 <- fraud1 %>%
+  filter(erd.vote_share < 1) %>%
+  distinct(n_turnout, n_winner)
+
+fraud1 %>%
+  filter(n_)
+
+```
+
+## Question 2
+##### The mere existence of high frequencies at fractions with small numerators and denominators does not always imply electoral fraud, though. Under certain conditions, these high frequencies may stem from simple numeric laws. Indeed, more numbers are divisible by smaller integers like 2, 3, and 4 than by larger integers like 22, 23, and 24. To investigate the possibility that the low fractions arose by chance, assume the following probability model: 
+ - Turnout for a polling station is binomially distributed, with size equal to the number of voters registered in the polling station and success probability equal to its observed turnout rate.
+ - Vote counts for the incumbent in a polling station is binomially distributed with size equal to the number of voters who simulated to turn out in the previous step and success probability equal to the polling station’s observed vote share. 
+ 
+Conduct a Monte Carlo simulation under these assumptions. 500 simulated elections should be sufficient.
+(Note that this may be computationally intensive code.) What are the 10 most frequent vote share values?
+Create a histogram similar to the one in the previous question. Briefly comment on the results.
+## Question 3
+##### To judge the Monte Carlo simulation results against the actual results of the 2018 Turkish election, we compare the observed fraction of observations within a bin of certain size with its simulated counterpart. To do this, create histograms showing the distribution of the following fractions 12 , 23 , 34 , and 35 . Then compare them with the corresponding fractions’ proportion in the actual election. Briefly interpret the results.
+
+## Question 4
+We now compare the relative frequency of observed fractions with the simulated ones beyond the four fractions examined in the previous question. To do this, we choose a bin size of 0.01 and compute the proportion of observations that fall into each bin. We then examine whether or not the observed proportion falls within the 2.5 and 97.5 percentiles of the corresponding simulated proportions. Plot the result with vote share bin on the horizontal axis and estimated vote share on the vertical axis. Now count the number of times an observed polling station vote share falls outside its simulated interval. Interpret the results.
+
+

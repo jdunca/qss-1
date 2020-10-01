@@ -180,3 +180,7 @@ summary(as.factor(prop.AJPS$election))
 ### 2.5.3: Did proposal power lead MPs to spend more or less money? Rather than answering this with just a difference in means, create a boxplot for each of four groups based on the 2x2 of government vs. opposition and proposal power and no proposal power. 
 
 ### 2.5.4: Provide a clear description as if it is in a paper (“This figure shows that. . . ”)
+
+
+
+
