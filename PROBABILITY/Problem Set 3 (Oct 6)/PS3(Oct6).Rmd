@@ -20,49 +20,50 @@ GoT.grads <- read_csv("GoTAcademicMkt.csv")
 ```{r}
 chosenones <- choose((150 - 14), 5) / choose(150, 5) # the likelihood that a BU grad will *not* be selected is calculated by dividing the total possible combinations without BU grads by the total combinations overall.
 1 - chosenones # subtract that number from 1 to get the likelihood that at least 1 BU grad gets a job
-
-## for this question I assume someone can be offered multiple jobs, they just can't take multiple jobs
 ```
+
+There is a 39% chance that at least one Braavos University graduate will be hired.
 
 ## Question 2
 ##### Repeat the question above using a Monte Carlo simulation. For reproducibility, use set.seed(123).
 
 ```{r}
-GoT.uni <- c(rep("University of Meereen", 23), rep("Braavos University", 14), rep("University of Yunkai", 15), rep("Astapor College", 13), rep("King’s Landing College", 22), rep("Graduate School of Volantis", 14), rep("University of Casterly Rock", 13), rep("Institute of Dorne", 17), rep("University of Iron Islands", 19))
+GoT.uni <- c(rep("University of Meereen", 23), rep("Braavos University", 14), rep("University of Yunkai", 15), rep("Astapor College", 13), rep("King’s Landing College", 22), rep("Graduate School of Volantis", 14), rep("University of Casterly Rock", 13), rep("Institute of Dorne", 17), rep("University of Iron Islands", 19)) #creating a list that repeats the names of each institution one time per PhD graduate
 
-n.sim <- 1000000
-out <- rep(list(vector("character", length=5)),1000000)
+n.sim <- 1000000 #running 1 million simulations.
+out <- rep(list(vector("character", length=5)),1000000) #creating an empty vector for my outputs
 for (i in 1:n.sim){
-  out[[i]] <- sample(GoT.uni, 5, rep=FALSE)
+  out[[i]] <- sample(GoT.uni, 5, rep=FALSE)#taking 1 million samples of 5 from the list and putting them in "out"
 }
 
-thechosenones.prob <- rep(NA, 100000)
-for (i in 1:100000) {
-  thechosenones.prob[i] <- ifelse("Braavos University" %in% out[[i]], 1, 0)
+thechosenones.prob <- rep(NA, 1000000) ##creating a vector with a length of 1 million 
+for (i in 1:1000000) {
+  thechosenones.prob[i] <- ifelse("Braavos University" %in% out[[i]], 1, 0) #detecting which simulations feature Braavos Univeristy grads 
 }
-prop.table(table(thechosenones.prob))
+prop.table(table(thechosenones.prob)) #using a prop table to show me the likelihood of a BU grad getting hired.
 
 ```
+
+The simulation demonstrates that the above calculation is accurate as the chance of a Braavos University graduate getting hired is also 39%
 
 ## Question 3
 ##### What is the probability that only the graduates of Institute of Dorne would be employed? Would you suspect nepotism or special treatment?
 
-**use choose
-
-
 ```{r}
-choose(17, 5)/ choose(150, 5)
+choose(17, 5)/ choose(150, 5) ##the total possible combinations of IoD grads divided by the total possible combinations of all grads.
 
 ```
+
+There is a very negligible chance that all the hires would be from the Institute of Dorne. If this happened it would justify accustations of nepotism.
 
 ## Question 4
 ##### Now suppose that the hiring committee holds five consecutive meetings and at each round, they decide on who to make an offer. You know that Braavos University offers a special sequence of quantitative methods classes. Therefore, the probability of getting an offer for each graduate of Braavos University is twice the probability for who did not receive such training at each round. Calculate the probability that at least one graduate of Braavos University would be employed.
 ```{r}
-a <- 150 - 14
+a <- 150 - 14 #this calucates the number of grads from all institutions except BU
 
-b <- 14 * 2
+b <- 14 * 2 #this will help us to account for the fact that BU grads are twice as likely to be hired
 
-c <- a + b
+c <- a + b #this gives us the denominator for our weighted probability calculations
 
 a
 c
@@ -71,86 +72,83 @@ c
 
 
 ```{r}
-c1 <- 136/ 164
-c2 <- 135/ 163
-c3 <- 134/ 162
+c1 <- 136/ 164 #the chances that a non-BU grad will be chosen in round one
+c2 <- 135/ 163 #ditto for round two, except we have taken one off of both the numerator and denominator as one candidate has already been selected
+c3 <- 134/ 162 #and so on and so forth 
 c4 <- 133/ 161
 c5 <- 132/ 160
 
-1- (c1 * c2 * c3 * c4 * c5)
+1- (c1 * c2 * c3 * c4 * c5) #multiply all of the probabilities and subtract from one
 
 ```
+There is a 61% chance that a BU grad would be selected across all five rounds 
 
 #Section 2
 ## Question 1
 
-##### To analyze the 2018 Turkish election results, first compute Erdogan’s vote share as a proportion of the voters who turned out. Identify the 10 most frequently occurring fractions for the vote share. Then create a histogram that sets the number of bins to the number of unique fractions, with one bar created for each uniquely observed fraction, to differentiate between similar fractions like 1/2 and 51/
-100. This can be done by using the breaks argument in the hist function. The intuition behind this analysis is that if the frequency of coarse vote-shares is high (such as 0.5, 0.6, 0.75), then we might suspect that the results are fabricated.
+##### To analyze the 2018 Turkish election results, first compute Erdogan’s vote share as a proportion of the voters who turned out. Identify the 10 most frequently occurring fractions for the vote share. Then create a histogram that sets the number of bins to the number of unique fractions, with one bar created for each uniquely observed fraction, to differentiate between similar fractions like 1/2 and 51/100. This can be done by using the breaks argument in the hist function. The intuition behind this analysis is that if the frequency of coarse vote-shares is high (such as 0.5, 0.6, 0.75), then we might suspect that the results are fabricated.
 
 ```{r}
-fraud$vote_share <- fraud$n_winner / fraud$n_turnout
-top.vs <- data.frame(summary(as.factor(fraud$vote_share)))
-top.10 <- head(top.vs, 10)
-top.10 <- cbind(rownames(top.10), top.10)
+fraud$vote_share <- fraud$n_winner / fraud$n_turnout #calculating vote share
+top.vs <- data.frame(summary(as.factor(fraud$vote_share))) #summarizing as factor to get the frequency of each fraction and forcing it into a data frame so I look at it without getting a headache
+top.10 <- head(top.vs, 10) #out putting the top 10 results 
+top.10 <- cbind(rownames(top.10), top.10) #formalizing and naming the columns of the data frame so I can mess with them
 rownames(top.10) <- NULL
 colnames(top.10) <- c("fraction", "frequency")
-for (i in top.10){ top10list <- rep(top.10$fraction, top.10$frequency)
+for (i in top.10){ top10list <- rep(top.10$fraction, top.10$frequency) #converting the data frame into a list I can hist()
 }
-realhist <- hist(as.numeric(top10list),  main = "Top vote share fractions", xlab = "fraction", ylab = "frequency", xlim = c(0.3, 1), ylim = c(0, 600), breaks = seq(0, 1, by = 0.025))
+realhist <- hist(as.numeric(top10list),  main = "Top vote share fractions", xlab = "fraction", ylab = "frequency", xlim = c(0.3, 1), ylim = c(0, 600), breaks = seq(0, 1, by = 0.025)) #setting the paramaters of the histogram. Most notably using breaks at intervals of 0.025 so that each of the unique fractions gets it's own bin but remains properly spaced along the x-axis with bars of the same width.
 ```
 
 ## Question 2
 ##### The mere existence of high frequencies at fractions with small numerators and denominators does not always imply electoral fraud, though. Under certain conditions, these high frequencies may stem from simple numeric laws. Indeed, more numbers are divisible by smaller integers like 2, 3, and 4 than by larger integers like 22, 23, and 24. To investigate the possibility that the low fractions arose by chance, assume the following probability model: 
- - Turnout for a polling station is binomially distributed, with size equal to the number of voters registered in the polling station and success probability equal to its observed turnout rate.
- - Vote counts for the incumbent in a polling station is binomially distributed with size equal to the number of voters who simulated to turn out in the previous step and success probability equal to the polling station’s observed vote share. 
+ a) Turnout for a polling station is binomially distributed, with size equal to the number of voters registered in the polling station and success probability equal to its observed turnout rate.
+ b) Vote counts for the incumbent in a polling station is binomially distributed with size equal to the number of voters who simulated to turn out in the previous step and success probability equal to the polling station’s observed vote share. 
  
 Conduct a Monte Carlo simulation under these assumptions. 500 simulated elections should be sufficient. (Note that this may be computationally intensive code.) What are the 10 most frequent vote share values? Create a histogram similar to the one in the previous question. Briefly comment on the results.
  
 ```{r warning=FALSE}
-n.sim <- 500
-vs <- fraud$n_winner / fraud$n_turnout
+n.sim <- 500 #i will run five hundred simulations as instructed
+vs <- fraud$vote_share #naming variables that will be useful
 to <- fraud$n_turnout / fraud$n_voters
 nv <- fraud$n_voters
-turn.out <- rbinom(180122, size = nv, prob = to)
-vote.share <- rbinom(180122, size = turn.out, prob = vs)
-fractions <- vote.share/ turn.out
-top.frac <- data.frame(summary(as.factor(fractions)))
+turn.out <- rbinom(180122, size = nv, prob = to) #calculating binomial distribution for part "a"
+vote.share <- rbinom(180122, size = turn.out, prob = vs) #same for part "b"
+fractions <- vote.share/ turn.out #this is the simulated list of fractions
+top.frac <- data.frame(summary(as.factor(fractions))) #repeating the process of extracting the top ten most common as I did above
 top.frac <- head(top.frac, 10)
 top.frac <- cbind(rownames(top.frac), top.frac)
 rownames(top.frac) <- NULL
 colnames(top.frac) <- c("fraction", "frequency")
 for (i in top.frac){ top10frac <- rep(top.frac$fraction, top.frac$frequency)
 }
-simhist <- hist(as.numeric(top10frac),  main = "Top vote share fractions (sim)", xlab = "fraction", ylab = "frequency", xlim = c(0.3, 1), ylim = c(0, 600), breaks = seq(0, 1, by = 0.025))
+simhist <- hist(as.numeric(top10frac),  main = "Top vote share fractions (sim)", xlab = "fraction", ylab = "frequency", xlim = c(0.3, 1), ylim = c(0, 600), breaks = seq(0, 1, by = 0.025)) #same histogram parameters as above
 
 ```
 
- 
 ## Question 3
 ##### To judge the Monte Carlo simulation results against the actual results of the 2018 Turkish election, we compare the observed fraction of observations within a bin of certain size with its simulated counterpart. To do this, create histograms showing the distribution of the following fractions 1/2 , 2/3 , 3/4 , and 3/5 . Then compare them with the corresponding fractions’ proportion in the actual election. Briefly interpret the results.
 
 ```{r}
-top.10$fraction <- as.numeric(top.10$fraction)
+top.10$fraction <- as.numeric(top.10$fraction) # the histpgram want complaining that it wanted numbers so I converted the columns to numbers from whatever their default was
 top.frac$fraction <- as.numeric(top.frac$fraction)
 
-t10.real <- subset(top.10, fraction == 0.5 | fraction == 0.666666666666667 | fraction == 0.75 | fraction == 0.6)
+t10.real <- subset(top.10, fraction == 0.5 | fraction == 0.666666666666667 | fraction == 0.75 | fraction == 0.6) #for both the real election data and the simulated I created a subset with all of the requested fractions
 t10.sim <- subset(top.frac, fraction == 0.5 | fraction == 0.666666666666667 | fraction == 0.75 | fraction == 0.6)
-for (i in t10.real){ t10.real2 <- rep(t10.real$fraction, t10.real$frequency)
+for (i in t10.real){ t10.real2 <- rep(t10.real$fraction, t10.real$frequency) #output them into a list
 }
 for (i in t10.sim){ t10.sim2 <- rep(t10.sim$fraction, t10.sim$frequency)
 }
-par(mfrow= c(1, 2))
+par(mfrow= c(1, 2)) #then plotted histograms side-by-side
 hist(t10.real2)
 hist(t10.sim2)
 
-
-
-
 ```
 
+The real election data appears to be very similar to the real data. I suspect I have made a mistake with my simulation.
 
 ```{r}
-par(mfrow=c(1,2))
+par(mfrow=c(1,2))# I also plotted the top ten right next to each other in the same fashion as above
 
 realhist <- hist(as.numeric(top10list),  main = "Top vote share fractions", xlab = "fraction", ylab = "frequency", xlim = c(0.3, 1), ylim = c(0, 700), breaks = seq(0, 1, by = 0.025))
 
@@ -158,13 +156,25 @@ simhist <- hist(as.numeric(top10frac),  main = "Top vote share fractions (sim)",
 ```
 
 ## Question 4
-We now compare the relative frequency of observed fractions with the simulated ones beyond the four fractions examined in the previous question. To do this, we choose a bin size of 0.01 and compute the proportion of observations that fall into each bin. We then examine whether or not the observed proportion falls within the 2.5 and 97.5 percentiles of the corresponding simulated proportions. Plot the result with vote share bin on the horizontal axis and estimated vote share on the vertical axis. Now count the number of times an observed polling station vote share falls outside its simulated interval. Interpret the results.
+##### We now compare the relative frequency of observed fractions with the simulated ones beyond the four fractions examined in the previous question. To do this, we choose a bin size of 0.01 and compute the proportion of observations that fall into each bin. We then examine whether or not the observed proportion falls within the 2.5 and 97.5 percentiles of the corresponding simulated proportions. Plot the result with vote share bin on the horizontal axis and estimated vote share on the vertical axis. Now count the number of times an observed polling station vote share falls outside its simulated interval. Interpret the results.
 
 ```{r}
-par(mfrow=c(1,2))
 
-realhist <- hist(fraud$vote_share,  main = "Top vote share fractions", xlab = "fraction", ylab = "frequency", xlim = c(0, 1), ylim = c(0, 3000), breaks = seq(0, 1, by = 0.01))
+vsreal <- fraud$vote_share #outputting the entire distribution of fractions
+vssim <- fractions
 
-simhist <- hist(as.numeric(fractions),  main = "Top vote share fractions (sim)", xlab = "fraction", ylab = "frequency", xlim = c(0, 1), ylim = c(0, 3000), breaks = seq(0, 1, by = 0.01))
+
+par(mfrow=c(1,2)) #plotting them on histograms
+
+realhist <- hist(vsreal, main = "Top vote share fractions", xlab = "fraction", ylab = "frequency", xlim = c(0, 1), ylim = c(0, 2), breaks = seq(0, 1, by = 0.01), freq = F)
+
+simhist <- hist(vssim, main = "Top vote share fractions (sim)", xlab = "fraction", ylab = "frequency", xlim = c(0, 1), ylim = c(0, 2), breaks = seq(0, 1, by = 0.01), freq = F)
 ```
 
+The simulated bar chart appears to largely re-create the results of the real election. I anticipate that if I were able to fully complete this question that there would be specific bins that featured results that were higher than the simulated probability densities.
+
+If I were smarter and had more time I would address the rest of this question as follows:
+
+1. I would find a way to out put as numbers the proposrtion of observations in each bin
+2. I would use the quantiles function to meausure the 2.5th and 97.5th percentile marks. 
+3. I would then plot this in a bar chart using vote share as the y-axis and each bin on the x-axis using a horizontal line to mark out the 97.5 and 2.5 thresholds and thus identify how many times they have been exceeded.
