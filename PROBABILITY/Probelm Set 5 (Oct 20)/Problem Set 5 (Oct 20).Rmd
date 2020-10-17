@@ -1,0 +1,106 @@
+---
+title: "PS5 (Oct 20)"
+author: "Jamie Duncan"
+date: "15/10/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(waldo)
+intrade <- read_csv("intrade08.csv")
+pres <- read_csv("pres08.csv")
+
+```
+##### Section 1
+###### Question 1
+We analyze the contract of the Democratic Party nominee winning a given state *j*. Recall from Section 4.5 that the data set contains the contract price of the market for each state on each day *i* leading up to the election. We will interpret the PriceD as the probability *pij* that the Democrat would win state *j* if the election were held on day *i*. To treat PriceD as a probability, divide it by 100 so it ranges from 0 to 1.
+
+```{r}
+intrade.n3 <- intrade %>%
+  filter(day == "2008-11-03") %>%
+  mutate(ppd = PriceD / 100)
+
+intrade.n3$state.name <- intrade.n3$statename
+
+pred08 <- merge(intrade.n3, pres, by = "state.name")
+
+pred08.rel <- pred08 %>% 
+  select(state.name, ppd, Obama, McCain, EV)
+
+pred08.rel$probama <- pred08.rel$Obama + pred08.rel$McCain
+pred08.rel$probama <- pred08.rel$Obama / pred08.rel$probama
+
+compare(pred08.rel$state.name, pres$state.name)
+
+```
+
+How accurate is this probability? Using only the data from the day before Election Day (November 4, 2008) within each state, compute the expected number of electoral votes Obama is predicted to win and compare it with the actual number of electoral votes Obama won. Briefly interpret the result. Recall that the actual total number of electoral votes for Obama is 365, not 364, which is the sum of electoral votes for Obama based on the results data. The 365-total includes a single electoral vote that Obama garnered from Nebraska’s 2nd Congressional District. McCain won Nebraska’s four other electoral votes because he won the state overall.
+
+```{r}
+n.states <- nrow(pred08.rel)
+n <- 1000
+sims <- 10000
+
+realobama.ev <- rep(NA, sims)
+for (i in 1:sims){
+  draws <- rbinom(n.states, size = n, prob = pred08.rel$probama)
+  realobama.ev[i] <- sum(pred08.rel$EV[draws > n/ 2])
+}
+
+predobama.ev <- rep(NA, sims)
+for (i in 1:sims){
+  draws <- rbinom(n.states, size = n, prob = pred08.rel$ppd)
+  predobama.ev[i] <- sum(pred08.rel$EV[draws > n/ 2])
+}
+hist(realobama.ev, freq = F, main = "Prediction of election outcome (real)", xlab = "Obama's Electoral College votes")
+abline(v = 364, col = "blue")
+
+mean(predobama.ev) 
+
+```
+
+###### Question 2
+Next, using the same set of probabilities used in the previous question, simulate the total number of electoral votes Obama is predicted to win. Assume that the election in each state is a Bernoulli trial where the probability of success (Obama winning) is pij . Display the results using a histogram. Add the actual number of electoral votes Obama won as a solid line. Briefly interpret the result.
+
+```{r}
+pred08.rel$win <- 0
+
+for (i in 1:sims) {
+  draws <- rbinom(sims, size = 1, prob = pred08.rel$ppd)
+  pred08.rel$win[i, ] <- mean(draws)
+}
+
+
+
+
+```
+
+
+###### Question 3
+In prediction markets, people tend to exaggerate the likelihood that the trailing or “long shot”" candidate will win. This means that candidates with a low (high) pij have a true probability that is lower (higher) than their predicted pij . Such a discrepancy could introduce bias into our predictions, so we want to adjust our probabilities to account for it. We do so by reducing the probability for candidates who have a less than 0.5 chance of winning, and increasing the probability for those with a greater than 0.5 chance. We will calculate a new probability p ij using the following formula proposed by a researcher: p ij = (1.64 × −1(pij)) where (·) is the CDF of the standard Normal random variable and −1(·) is its inverse, the quantile function. The R functions pnorm and qnorm can be used to compute (·) and −1(·), respectively. Plot pij , used in the previous questions, against p ij . In addition, plot this function itself as a line. Explain the nature of the transformation.
+###### Question 4
+Using the new probabilities p ij , repeat Questions 1 and 2. Do the new probabilities improve predictive performance?
+###### Question 5
+Compute the expected number of Obama’s electoral votes using the new probabilities p ij for each of the last 120 days of the campaign. Display the result as a time series plot. Briefly interpret the plot.
+###### Question 6
+For each of the last 120 days of the campaign, conduct a simulation as done in Question 2 using the new probabilities p ij . Compute the quantiles of Obama’s electoral votes at 2.5% and 97.5% for each day. Represent the range from 2.5% to 97.5% for each day as a vertical line, using a loop. Also, add the estimated total number of Obama’s electoral votes across simulations. Briefly interpret the result.
+#####Section 2
+###### Question 1
+What percentage of male respondents have a bachelor’s degree? Non-male respondents?1 What is the mean frequency of religious attendance on the 4 point scale? Construct a histogram of religious attendance.
+###### Question 2
+Consider the trust in one’s own church question. Does it look normally distributed? Look at a table, then make a barplot from that table. What does that suggest?
+###### Question 3
+Consider two data generating processes. In one, people have some true trust level that is uniformly distributed as one of 11 levels, in order. That is, the scale, running from 0 to 10, reflects the trust level that people actually have, and people are spread evenly across those groups. Alternatively, consider a model in which Y   N(0, 1) and yi is 8>< >: 0 if y i < 0 j if j−1 < y i  j 10 if y i > 8
+
+That is,  is a vector of length 9 (numbered 0 to 8), and Y  is an unobserved (latent) variable that is “revealed” to the observer through the survey as Y depending on where it falls among the taus. To visualize this, consider the Figure 1. The density of Y  is overlaid with the “buckets” into which y is grouped. Simulate 1000 observations from each of these DGPs. Use  = seq(−2, 2.5, by = .5) for the latent variable. make barplots and compare them to the one of ownchtrust. Then compare each of the new distributions to ownchtrust using a qqplot.
+
+###### Question 4
+The Moreno scale is a five point regional vs. national identity scale that allows a respondent in a region to describe him/herself as (using Ontario) 1. Canadian only 2. More Canadian than Ontarian 3. Equally Canadian and Ontarian 4. More Ontarian than Canadian 5. Ontarian only In what province or territory is the mean level of regional identification highest? How confident would you be in that conclusion? Why?
+
+###### Question 5
+Recode the province variable into regions (it might be simplest to use the %in% command in some parts of the process). I’d suggest BC, praries, Ontario, Quebec, and Atlantic Canada as the basic regions, leaving the territories aside for this analysis. Then, compare average levels of regional linked fate by region. Which is greater, the standard deviation of these regional means or the standard deviation of the entire dataset at the individual level? Is that surprising? Why or why not?
+###### Question 6
+Calculate confidence intervals for the regional means. Plot those means and confidence intervals. You might want to use dotchart if you are working in base R. geom_pointrange() will accomplish something similar in the tidyverse.
