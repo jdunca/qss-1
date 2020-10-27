@@ -17,133 +17,195 @@ pres <- read_csv("pres08.csv")
 ```
 ##### Section 1
 ###### Question 1
-We analyze the contract of the Democratic Party nominee winning a given state *j*. Recall from Section 4.5 that the data set contains the contract price of the market for each state on each day *i* leading up to the election. We will interpret the PriceD as the probability *pij* that the Democrat would win state *j* if the election were held on day *i*. To treat PriceD as a probability, divide it by 100 so it ranges from 0 to 1.
 
 ```{r}
-intrade.n3 <- intrade %>%
+intrade.n3 <- intrade %>% #subsetting for just november 3rd and calculating pij (as ppd)
   filter(day == "2008-11-03") %>%
   mutate(ppd = PriceD / 100)
 
-intrade.n3$state.name <- intrade.n3$statename
+intrade.n3$state.name <- intrade.n3$statename #renaming the statename column
 
-pred08 <- merge(intrade.n3, pres, by = "state.name")
+pred08 <- merge(intrade.n3, pres, by = "state.name") #merging the two datasets
 
 pred08.rel <- pred08 %>% 
-  select(state.name, ppd, Obama, McCain, EV)
+  select(state.name, ppd, Obama, McCain, EV) #selecting only relevant variables
 
-pred08.rel$probama <- pred08.rel$Obama + pred08.rel$McCain
-pred08.rel$probama <- pred08.rel$Obama / pred08.rel$probama
+pred08.rel$probama <- pred08.rel$Obama / (pred08.rel$Obama + pred08.rel$McCain) #calculating the probability of Obama's success and calling it "probama"
 
-compare(pred08.rel$state.name, pres$state.name)
-
-```
-
-How accurate is this probability? Using only the data from the day before Election Day (November 4, 2008) within each state, compute the expected number of electoral votes Obama is predicted to win and compare it with the actual number of electoral votes Obama won. Briefly interpret the result. Recall that the actual total number of electoral votes for Obama is 365, not 364, which is the sum of electoral votes for Obama based on the results data. The 365-total includes a single electoral vote that Obama garnered from Nebraska’s 2nd Congressional District. McCain won Nebraska’s four other electoral votes because he won the state overall.
-
-```{r}
-set.seed(123)
-n.states <- nrow(pred08.rel)
-n <- 1000
-sims <- 10000
-
-pollsim.ev <- rep(NA, sims)
-for (i in 1:sims){
-  draws <- rbinom(n.states, size = n, prob = pred08.rel$probama)
-  pollsim.ev[i] <- sum(pred08.rel$EV[draws > n/ 2])
-}
-
-
-hist(pollsim.ev, freq = F, main = "Prediction of election outcome (poll)", xlab = "Obama's Electoral College votes")
-abline(v = 364, col = "blue")
+compare(pred08.rel$state.name, pres$state.name) #comparing the new data set to the polling data set
 
 ```
 
-```{r}
-pred08.rel$realwin <- ifelse(pred08.rel$Obama > pred08.rel$McCain, 1, 0)
-resultEV <- sum(pred08.rel$EV[pred08.rel$realwin == 1]) + 3 + 1
+DC is missing and those 3 seats can be attributed to Obama given the high likihood of him winning the seat.
 
-pred08.rel$predwin <- ifelse(pred08.rel$ppd > 0.5, 1, 0)
-predEV <- sum(pred08.rel$EV[pred08.rel$predwin == 1]) + 3 + 1
+
+```{r}
+pred08.rel$realwin <- ifelse(pred08.rel$Obama > pred08.rel$McCain, 1, 0) #calculating expected number of seats based on outcome data
+resultEV <- sum(pred08.rel$EV[pred08.rel$realwin == 1]) + 3 + 1 #adding 3 for DC and 1 for Nebraska
+
+pij <- pred08.rel$ppd #specifying pij = ppd
+
+pred08.rel$predwin <- ifelse(pij > 0.5, 1, 0) #calculating expected number of seats based on outcome data
+predEV <- sum(pred08.rel$EV[pred08.rel$predwin == 1]) + 3 + 1 #adding 3 for DC and 1 for Nebraska
 
 resultEV
 predEV
 
 
+
+
 ```
 
+When accounting for the missing data from DC and the 1 seat from Nebraska that is specified in the question, I find that the Price D probabilities can be used to accurately calculate the number of EVs that Obama actually won.
+
 ###### Question 2
-Next, using the same set of probabilities used in the previous question, simulate the total number of electoral votes Obama is predicted to win. Assume that the election in each state is a Bernoulli trial where the probability of success (Obama winning) is pij . Display the results using a histogram. Add the actual number of electoral votes Obama won as a solid line. Briefly interpret the result.
+
+```{r}
+set.seed(123)
+sims <- 10000
+n.states <- nrow(pred08.rel)
+predobama.ev <- rep(NA, sims) #empty vector
+for (i in 1:sims) {
+  b.trial <- rbinom(n.states, size = 1, prob = pred08.rel$ppd) #setting up a bernoulli trial for a WIN/ NO WIN situation
+  predobama.ev[i] <- sum(pred08.rel$EV[b.trial == 1]) #calculating the expected number of seats
+}
+
+hist(predobama.ev, freq = FALSE, #creating a histogram as described above
+     main="Prediction election outcome (sim)",
+     xlab= "Obama's Electoral College votes")
+abline(v=365, col = "blue") #obama's actual votes are in blue
+abline(v = mean(predobama.ev)+ 4, col = "red") #the predicvted number of votes is in red
+
+
+```
+The distribution looks normal, though the predicted mean in this simulation is lower than the actual outcome by about 10 votes.
+
+###### Question 3
+
+```{r}
+pijstar <- pnorm(1.64*qnorm(pij)) #applying the equation provided by the mystical researcher in the sky
+
+par(mfrow = c(1, 2)) #placing two charts next to each other
+qqplot(pij,pijstar, main = "Q-Q Plot Pij Against Pijstar") #plotting the old and new probabilities against each other in qqplot
+plot(sort(pijstar), type = "l", main = "Pij Against Pijstar", ylab = "pijstar", xlab = "pij") #plotting the old and new probabilities against each other as lines
+lines(sort(pij), col = "blue")
+
+```
+
+Pij star shifts mean up and the standard deviation down of the cumulative distribution of pij, thus concentrating the probabilities and creating a steeper slope. This in effect increases the higher probabilities and decreases the lower ones.
+
+###### Question 4
+
+```{r}
+pred08.rel$predwinstar <- ifelse(pijstar > 0.5, 1, 0)
+predEV2 <- sum(pred08.rel$EV[pred08.rel$predwinstar == 1]) + 3 + 1
+predEV2
+
+
+```
+
+With the ifelse method the answer remains the same.
+
+```{r}
+set.seed(123)
+predobama.ev.star <- rep(NA, sims)
+for (i in 1:sims) {
+  b.trial <- rbinom(n.states, size = 1, prob = pijstar)
+  predobama.ev.star[i] <- sum(pred08.rel$EV[b.trial == 1])
+}
+
+hist(predobama.ev.star, freq = FALSE, 
+     main="Prediction election outcome (sim)",
+     xlab= "Obama's Electoral College votes")
+abline(v=365, col = "blue")
+abline(v = mean(predobama.ev.star)+ 4, col = "red")
+
+```
+
+```{r}
+mean(predobama.ev)
+mean(predobama.ev.star)
+
+```
+
+Using the simulation method, the accuracy improves significantly, though still underestimates Obama's chances.
+
+###### Question 5
+
+```{r}
+intrade$state.name <- intrade$statename #prepping and merging the data as I did in the first question
+inpres <- merge(intrade, pres, by = "state.name")
+inpres$pij2 = inpres$PriceD/ 100#creating the OG pij
+inpres$pijstar2 <- pnorm(1.64*qnorm(inpres$pij2)) #creating the pijstar distribution
+
+inpres.rel <- inpres %>% 
+  select(day, state.name, pijstar2, EV) 
+
+#filter for 120 days before November 4th
+inpres.rel.120 <- inpres.rel  %>% 
+  filter(day >= as.Date("2008-07-07") & day < as.Date("2008-11-04"))
+#inpres.rel.120$predwin2 <- ifelse(pijstar2 > 0.5, 1, 0) #if the probability is above 0.5 then predwin 2 gets a 1 and if not it gets a 0.
+
+
+
+#aggregating the time series data by day (thanks to Laura for that)
+#timeseries <- aggregate(inpres.rel.120$EV[inpres.rel.120$predwin2 == 1], list(category=inpres.rel.120$day[inpres.rel.120$predwin2 == 1]), sum)
+
+
+#plot(timeseries, main = "Predicted EVs for Obama by data")
+
+
+#commented out because it was an error
+
+```
+I got a plot but Rmd wouldn't knit it. It's OK cause it was wrong. My interpretation is thus that the plot is wrong but points for trying?
+
+###### Question 6
 
 
 ```{r}
 set.seed(123)
-predobama.ev <- rep(NA, sims)
+predobama.ev.star2 <- rep(NA, sims)
 for (i in 1:sims) {
-  b.trial <- rbinom(n.states, size = 1, prob = pred08.rel$ppd)
-  predobama.ev[i] <- sum(pred08.rel$EV[b.trial == 1])
+  b.trial3 <- rbinom(n.states, size = 1, prob = inpres.rel.120$pijstar2)
+  predobama.ev.star2[i] <- sum(inpres.rel.120$EV[b.trial3 == 1])
 }
 
-hist(predobama.ev, freq = FALSE, 
-     main="Prediction election outcome (sim)",
-     xlab= "Obama's Electoral College votes")
-abline(v=365, col = "blue")
-abline(v = mean(predobama.ev)+ 4, col = "red")
-lines(predobama.ev, dnorm(predobama.ev, obamamean, obamasd))
-
-
-```
-The distribution looks normal, though the predicted mean is lower than the actual outcome by about 10 votes.
-
-###### Question 3
-In prediction markets, people tend to exaggerate the likelihood that the trailing or “long shot”" candidate will win. This means that candidates with a low (high) pij have a true probability that is lower (higher) than their predicted pij . Such a discrepancy could introduce bias into our predictions, so we want to adjust our probabilities to account for it. We do so by reducing the probability for candidates who have a less than 0.5 chance of winning, and increasing the probability for those with a greater than 0.5 chance. We will calculate a new probability p*ij using the following formula proposed by a researcher: p ij = (1.64 × −1(pij)) where (·) is the CDF of the standard Normal random variable and −1(·) is its inverse, the quantile function. The R functions pnorm and qnorm can be used to compute (·) and −1(·), respectively. Plot pij , used in the previous questions, against p ij . In addition, plot this function itself as a line. Explain the nature of the transformation.
-
-```{r}
-pijstar <- pnorm(1.64*qnorm(pred08.rel$ppd))
-
-pijstar
-
 ```
 
+Truly lost but I imagine I could somehow plot the mean(predobama.ev.star)+ 4 by day somehow? Not enough time to figure it out.
 
-###### Question 4
-Using the new probabilities p ij , repeat Questions 1 and 2. Do the new probabilities improve predictive performance?
-
-###### Question 5
-Compute the expected number of Obama’s electoral votes using the new probabilities p ij for each of the last 120 days of the campaign. Display the result as a time series plot. Briefly interpret the plot.
-
-###### Question 6
-For each of the last 120 days of the campaign, conduct a simulation as done in Question 2 using the new probabilities p ij . Compute the quantiles of Obama’s electoral votes at 2.5% and 97.5% for each day. Represent the range from 2.5% to 97.5% for each day as a vertical line, using a loop. Also, add the estimated total number of Obama’s electoral votes across simulations. Briefly interpret the result.
-
-
-#####Section 2
+##### Section 2
 
 ```{r}
-fate <- read_csv("linkfate.csv")
+fate <- read_csv("linkfate.csv") #loading in and summarizing data
 summary(fate)
 ```
 
 ###### Question 1
-What percentage of male respondents have a bachelor’s degree? Non-male respondents?1 What is the mean frequency of religious attendance on the 4 point scale? Construct a histogram of religious attendance.
 
 ```{r}
-prop.table(table(male = fate$Male, bach = fate$Bachelor))
-mean(fate$relfreq[fate$relfreq != 99])
+prop.table(table(male = fate$Male, bach = fate$Bachelor)) #prop[ table calculating the proportion of people by gender and education
+mean(fate$relfreq[fate$relfreq != 99]) #mean without 99s
 
 ```
+
+Roughly 12% of males in the data have a bachelor's degree. The mean frequency of religious attendance is 2.1 out of 4.
+
 ```{r}
 hist(fate$relfreq[fate$relfreq != 99], freq = F, main = "Religious attendence", xlab = "Attendence score", xaxt ="n")
-axis(side = 1, at= c(1, 2, 3, 4))
+axis(side = 1, at= c(1, 2, 3, 4)) #labelling the values properly]
 
 ```
 
 ###### Question 2
-Consider the trust in one’s own church question. Does it look normally distributed? Look at a table, then make a barplot from that table. What does that suggest?
+
 ```{r}
 
-chtrust <- table(fate$ownchtrust[fate$ownchtrust != 99])
-chtrust2 <- prop.table(table(fate$ownchtrust))
-chtrust
-chtrust2
+chtrust <- table(fate$ownchtrust[fate$ownchtrust != 99]) #creating a table without the 99s
+chtrust2 <- prop.table(table(fate$ownchtrust)) # turning this into proportions justin case
+chtrust #printing table to see the values
+mean(chtrust)
 
 ```
 
@@ -151,42 +213,57 @@ chtrust2
 plot(chtrust, main = "Trust in own church", xlab = "Trust score", ylab = "Number of repsonses")
 ```
 
+The trust in church responses do not look perfectly normally distributed as there is a higher concentration of responses above 5 meaning that the distribution in non-symmetrical.
+
 ###### Question 3
-Consider two data generating processes. In one, people have some true trust level that is uniformly distributed as one of 11 levels, in order. That is, the scale, running from 0 to 10, reflects the trust level that people actually have, and people are spread evenly across those groups. 
 
 ```{r}
-sims2 <- 1000
-x <- seq(0, 11, 1)
-y <- rnorm(sims2, mean(x))
-hist(y, xlim = c(0,10))
-
-
+set.seed(123) #setting seed
+sims2 <- 10000 #specifying sims
+x <- seq(0, 10, 1) #creating a vector called x for the 0-10 scale
+t <- seq(0, 8.0, 1) #creating a vector called t for the 0-8 scale
+lt <- seq(-2, 2.5, 0.5) #specifying the sequence for the latent variable in a vector called lt
+y <- rnorm(sims2, mean(x)) #y is a simulated normal distribution of x
+ystar <- rnorm(sims2, mean(t)) #ystar is a simiulated normal distribution of t
+ltdist <- rnorm(sims2, mean(lt)) #ltdist is a plot of the latent variable
 
 ```
 
 
-Make barplots and compare them to the one of ownchtrust. Then compare each of the new distributions to ownchtrust using a qqplot.
 ```{r}
+par(mfrow= c(1,4)) # 3 barplots next to each other
+hist(y, xlim = c(0,10), breaks = 10) #histograms for each distribution
+hist(ystar, breaks = 7)
+hist(ltdist, breaks = 7)
+plot(chtrust, main = "Trust in own church", xlab = "Trust score", ylab = "Number of repsonses")
 
 ```
+
+```{r}
+par(mfrow = c(1,3)) #plotting all the qq plots againt chtrust
+qqplot(ystar, chtrust)
+qqplot(y, chtrust)
+qqplot(ltdist, chtrust)
+
+```
+The QQ plots don't line up very evenly. I couldn't for the life of me figure out how to fix the y axis.
 
 
 ###### Question 4
-The Moreno scale is a five point regional vs. national identity scale that allows a respondent in a region to describe him/herself as (using Ontario) 1. Canadian only 2. More Canadian than Ontarian 3. Equally Canadian and Ontarian 4. More Ontarian than Canadian 5. Ontarian only In what province or territory is the mean level of regional identification highest? How confident would you be in that conclusion? Why?
 
 ```{r}
-sort(tapply(fate$moreno, fate$province, mean), decreasing = T)
+sort(tapply(fate$moreno, fate$province, mean), decreasing = T) #calculating and sorting the average moreno score by province
 
-sort(table(fate$province), decreasing = T)
+sort(table(fate$province), decreasing = T) #lloking at the number of row entries by province
 
 ```
-
+The Yukon has the highest average regional identity score. This is not a relibale indicator because only two responses came for the Yukon.
 
 ###### Question 5
-Recode the province variable into regions (it might be simplest to use the %in% command in some parts of the process). I’d suggest BC, prairies, Ontario, Quebec, and Atlantic Canada as the basic regions, leaving the territories aside for this analysis. Then, compare average levels of regional linked fate by region. Which is greater, the standard deviation of these regional means or the standard deviation of the entire dataset at the individual level? Is that surprising? Why or why not?
-
 ```{r}
-fate$region <- fate$province
+fate$region <- fate$province #creating a region variable
+
+##subsetting inefficiently because it was more efficient than trying to figure out how to do it efficiently. I acknowledge this is short term thinking.
 fate$region[fate$region == "Alberta" | fate$region == "Saskatchewan" | fate$region == "Manitoba"] <- "Prairies"
 fate$region[fate$region == "Nova Scotia" | fate$region == "Newfoundland and Labrador" | fate$region == "Prince Edward Island" | fate$region == "New Brunswick"] <- "Maritimes"
 fate$region[fate$region == "Northwest Territories" | fate$region == "Yukon"] <- NA
@@ -194,27 +271,43 @@ fate$region[fate$region == "Northwest Territories" | fate$region == "Yukon"] <- 
 ```
 
 
-
 ```{r}
+regmean <- sort(tapply(fate$regionlink, fate$region, mean), decreasing = T) #the mean region link by region
+regsd <- sort(tapply(fate$regionlink, fate$region, sd), decreasing = T) #the standard deviation by region
+regmean #printing the regional link means
 
-reg.mean -> tapply(fate$regionlink, fate$region, mean, decreasing = T)
-reg.sd -> tapply(fate$regionlink, fate$region, sd, decreasing = T)
-sort(reg.mean)
-sort(reg.sd)
 
 ```
+
+The Prairies appear to have the highest average regional scorres with Quebec featuring the lowest
 
 ```{r}
 sd(fate$regionlink)
-sd(sort(tapply(fate$regionlink, fate$region, sd), decreasing = T))
+
+sd(regmean)
+
 ```
 
+The average standard deviation across individual rows is much higher than the standard deviation of the regional means because the law of large numbers would dictate that as there are more respondents (like at the provincial level compared to individuals), then results will converge upon the mean thus lowering the standard deviation.
 
 ###### Question 6
-
-Calculate confidence intervals for the regional means. Plot those means and confidence intervals. You might want to use dotchart if you are working in base R. geom_pointrange() will accomplish something similar in the tidyverse.
-
 ```{r}
 
-```
+se <- regsd/ sqrt(sims2)
+ci <- data.frame(regmean - qnorm(0.995) * se, regmean + qnorm(0.995) * se)
+ci$regmean <- regmean
 
+
+colnames(ci)[1]<- "bottom"
+colnames(ci)[2]<- "top"
+ci <- rownames_to_column(ci, "region")
+
+ggplot(ci, aes(x = regmean, xmin = bottom, xmax= top, y= reorder(region, regmean))) +
+  geom_pointrange() +
+  theme_minimal() +
+  labs (x = "", 
+        y = "",
+        title = "Confidence Intervals by Regionlink")
+
+```
+This chart plots the confidence intervals for each region by region link scores. The black dot is the regional mean with the lin spanning the bottom to the top of the confidence interval.
