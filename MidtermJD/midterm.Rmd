@@ -108,14 +108,84 @@ natlog
 
 ```{r message=FALSE, warning=FALSE}
 texts <- read_csv("midtermdata.csv")
-summary(texts)
 ```
 
+###### Question 1
+###### Open the data in LinJakCarSimple.csv. How many types of text messages are there? Does it look like the treatment was assigned to each value with equal probability, or did they design it to send more of some types than others?
+```{r}
+
+texts$SMS <- as.factor(texts$SMS) #converting to categorical variable
+length(unique(texts$SMS))#counting the number of unique entries
+prop.table(table(texts$SMS))#showing each variable as a proportion of the whole
+
+```
+There are 6 unique categories of text message sent. The neutral texts are sent at rates roughly 5% less than the treatment texts.
+
+###### Question 2
+###### Compare the distribution of treatments by gender. Are males more likely to receive one treatment than another? What about older vs. younger people? What does this suggest about the randomization scheme?
 
 
+```{r}
+mean(texts$male)
+tapply(texts$male, texts$SMS, mean)
+```
+We can see that men comprise 65% of the whole sample and that this gender balance was maintained across the treatment groups. For gender the randomization appears to have been conducted appropriately.
 
 
+```{r}
+summary(texts$Age)
+tapply(texts$Age, texts$SMS, mean)
+tapply(texts$Age, texts$SMS, median)
 
+```
 
+The age distribution across treated groups is identical to the median agen and largely consistent with the mean age. For age, the randomization of treatment groups appears to be appropriate. This is confirmed by the boxplots below.
+
+```{r}
+boxplot(Age ~ SMS, texts, main = "Age distribution across SMS messages")
+```
+
+###### Question 3
+###### Calculate the overall mean and its 95% confidence interval for donated.
+
+```{r}
+n <- length(texts$donated)
+a <- mean(texts$donated)
+s <- sd(texts$donated)
+err <- sqrt(a * (1 - a) / n)
+c(a - qnorm(0.975) * err, a + qnorm(0.975) * err)
+```
+
+###### Then calculate the mean and 95% confidence interval for donated within each treatment group. How would you interpret the results?
+
+```{r}
+treat.n <- as.data.frame(tapply(texts$donated, texts$SMS, length))
+treat.a <- as.data.frame(tapply(texts$donated, texts$SMS, mean))
+treat.s <- as.data.frame(tapply(texts$donated, texts$SMS, sd))
+treat.e <- treat.s/ sqrt(treat.n)
+treat.ci1 <- as.data.frame(treat.a - qnorm(0.975) * treat.e)
+treat.ci2 <- as.data.frame(treat.a + qnorm(0.975) * treat.e)
+treat.ci <- cbind(treat.ci1, treat.ci2)
+treat.ci <- cbind(treat.ci, treat.a)
+treat.ci <- rownames_to_column(treat.ci)
+colnames(treat.ci)[1] <- "SMS"
+colnames(treat.ci)[2] <- "bottom"
+colnames(treat.ci)[3] <- "now_we_here"
+colnames(treat.ci)[4] <- "mean"
+treat.ci
+```
+
+###### BONUS: Using these means and confidence intervals, replicate their Figure 2 (ignore the fact that they used logit, just plot the means). Don’t worry about making it look nice.
+
+![](images/figure2.png)
+
+```{r}
+ggplot(treat.ci, aes(x = mean, xmin = bottom, xmax= now_we_here, y= SMS)) +
+  geom_pointrange() +
+  theme_minimal() +
+  labs (x = "", 
+        y = "",
+        title = "Confidence Intervals by Treatment Group")
+```
 
 
