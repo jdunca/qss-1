@@ -6,7 +6,11 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
 library(tidyverse)
 library(igraph)
 ```
@@ -17,7 +21,7 @@ library(igraph)
 
 ![](images/figure1.png)
 
-In figure 1 we can see that the throws are never fully accurate but the darts are clustered about 25% of the radius off of centre. If this were a Bernoulli trial, we could say that there are 0 successes and thus 0% accuracy. However, we can also think of accuracy in terms of average error in which case we could say that the area of the whole board represents all possibilities (assuming all darts hit the board, which means I'm not allowed to play) and that the darts are clustered about 0.25 of the radius off of centre. If we calculate the areas of these two circles with $\pi r^2$ and subtract the smaller from the larger and divide it by the area of the larger, we can see that the average estimated accuracy is more like 94%.
+In figure 1 we can see that the throws are never fully accurate but the darts are clustered about 25% of the radius off of centre. If this were a Bernoulli trial, we could say that there are 0 successes and thus 0% accuracy. However, we can also think of accuracy in terms of average error in which case we could say that the area of the whole board represents all possibilities (assuming all darts hit the board, which means I'm not allowed to play) and that the darts in this case are clustered about 0.25 of the radius off of centre. If we calculate the areas of these two circles with $\pi r^2$ and subtract the smaller from the larger and divide it by the area of the larger, we can see that the average estimated accuracy is more like 94%.
 
 ```{r}
 whole <- pi*1^2 #area of the whole dart board
@@ -34,13 +38,13 @@ Due to the pattern of clustering, we can say that the darts are reliably inaccur
 ###### Question 2
 ###### What is the fundamental problem of causal inference? If I were studying the effect of Kamala Harris campaigning in Texas on the probability of the Biden-Harris ticket winning Texas, how would the FPCI manifest itself? What could you do to try to (partially) overcome it in this context?
 
-One cannot observe the causal effect on one observation because causal inference "requires the prediction of counterfactual outcomes" (Imai, 2017, p.161). The problem can be restated by noting that if one of two things happens you can only empirically observe the event that actually occured and not the one that didn't.
+One cannot observe the causal effect of an observation because causal inference "requires the prediction of counterfactual outcomes" (Imai, 2017, p.161). The problem can be restated by noting that if one of two things happens you can only empirically observe the event that actually occurred and not the one that didn't.
 
-For example, in the case of Kamala Harris campaigning in Texas, either the Biden-Harris ticket wins the popular vote or it does not. I use popular vote because, as in 2016, the popular vote does not guarantee the winning ticket all 38 of Texas' electoral college votes. With either outcome (win / no win) the FPCI manifests as out inability to observe the counterfactual to the real outcome.
+For example, in the case of Kamala Harris campaigning in Texas, either the Biden-Harris ticket wins the popular vote or it does not. I use popular vote because, as in 2016, the popular vote does not guarantee the winning ticket all 38 of Texas' electoral college votes. With either outcome (win / no win) the FPCI manifests as our inability to observe the counterfactual to the real outcome.
 
-That said, we can infer counterfactual outcomes through studies like Randomized Controlled Trials (RCTs) or Observational studies. In this case a randomized controlled trial would be tricky and likely not then best research design but may involve randomly sampling from the Texan population and treating one subset of the sample with Kamala Harris campaign materials and observing and measuring any difference in shifts in voter behaviour between the treated and non-treated groups. 
+That said, we can infer counterfactual outcomes through studies like Randomized Controlled Trials (RCTs) or Observational studies. In this case a randomized controlled trial would be tricky and likely not then best research design but would hypothetically involve randomly sampling from the Texan population and treating one subset of the sample with Kamala Harris campaign materials and observing and measuring any difference in shifts in voter behaviour between the treated and non-treated groups. 
 
-My recommendation would be to conduct a before-and-after observational study. Although observational studies sacrifice a certain level of internal reliability as a consequence of confounding variables, they are more externally valid. This study would involve collecting and analyzing polling data from before and after Kamala Harris' campaigning activities in Texas and would compare the trends before and after the treatment of Harris' campaign. The researcher would then calculate the difference in differences between hypothetical outcomes. The Sample Average Treatment Effect of the campaign could be derived by calculating the differences in predicted outcomes (win / lose) across time. This could be further strengthened with difference-in-differences study design, wherein the Texas before and after outcomes are compared to those of a control state (or several), which are politically comparable to Texas but were not treated to Harris' campaigning.
+My recommendation would be to conduct a before-and-after observational study. Although observational studies sacrifice a certain level of internal reliability as a consequence of confounding variables, they are more externally valid. My proposed study would involve collecting and analyzing polling data from before and after Kamala Harris' campaigning activities in Texas and would compare the trends before and after the treatment of Harris' campaign. The Sample Average Treatment Effect of the campaign could be derived by calculating the differences in predicted outcomes (win / lose) across time. These insights could be further strengthened with difference-in-differences study design, wherein the Texas before and after shifts are compared to those of a control state (or several), which are politically comparable to Texas but were not treated to Harris' campaign.
 
 ###### Question 3
 ###### Consider the following model of turnout *(V)* for a potential Canadian voter. Let *C = 1* if the person lives in a closely contested riding, *0*, otherwise. Let *B = 1* if the person has a bachelor’s degree, *0* otherwise. Assume that education is independent of living in a closely contested riding. Using the following numbers, what share of people who actually turn out live in a closely contested riding and have a bachelor’s degree? 
@@ -81,8 +85,8 @@ Regardless of the way we try to work our brains around it, the most important po
 ![](images/table1.png)
 ###### How many possible ways could each group’s seats be allocated? You may do this by hand or in R. 
 ```{r message=FALSE, warning=FALSE}
-SCseats <- read_csv("SCseats.csv")
-SCseats$combos <- choose(SCseats$Members, SCseats$Seats)
+SCseats <- read_csv("SCseats.csv") #putting the data into a csv was the path of least resistance for me
+SCseats$combos <- choose(SCseats$Members, SCseats$Seats) #calculating combinations
 SCseats
 
 ```
@@ -188,4 +192,43 @@ ggplot(treat.ci, aes(x = mean, xmin = bottom, xmax= now_we_here, y= SMS)) +
         title = "Confidence Intervals by Treatment Group")
 ```
 
+###### Question 4
+###### Now, consider whether people living near informal Roma encampments react to the ethnic prime differently from others. Estimate the ATE of the Roma treatment for each value of Roma_Inf. For this exercise, do not include respondents who got the “Greek” treatment. Do either of the resulting ATEs have confidence intervals that include 0? You may want to use t.test().
 
+```{r}
+sx <- subset(texts, texts$SMS != "Greek Child" & texts$SMS != "Greek Rights")
+s1 <- subset(sx, sx$Roma_Inf == 1)
+s0 <- subset(sx, sx$Roma_Inf == 0)
+
+r1 <- tapply(s1$donated, s1$SMS, mean, na.rm = T)
+r0 <- tapply(s0$donated, s0$SMS, mean, na.rm = T)
+r1.neutral <- sum(r1[c(3,4)])
+r1.roma <- sum(r1[c(5,6)])
+r0.neutral <- sum(r0[c(3,4)])
+r0.roma <- sum(r0[c(5,6)])
+r1.ate <- r1.roma - r1.neutral
+r0.ate <- r0.roma - r0.neutral
+r1.ate
+r0.ate
+
+```
+
+```{r}
+t.test(sx$donated[sx$Roma_Inf == 1],
+       sx$donated[sx$Roma_Inf == 0])
+
+```
+
+##### Section 3
+###### Question 1
+###### The correlation coefficient is defined as:
+$$Pzy = \sum_{i}^{N}\frac{(x_{i} - \overline{x})(y_{i} - \overline{y})}{N\sigma_{x}\sigma_{y}}$$
+###### With reference to the individual parts of that equation, describe what it means. You are free to look up definitions, etc., but I want your best description of what each piece is doing there. 
+
+$Pzy$ refers to the correlation coefficient which quantifies and summarizes a linear relationship.
+$\frac{(x_{i} - \overline{x})(y_{i} - \overline{y})}{N\sigma_{x}\sigma_{y}}$ is equivalent to multiplying the z-score for x by the z-score for y across all instances in the data. More specifically this is calculated by  subtracting the an instance of x $x_{i)$ from the sum of all instances of x $\overline{x}$, doing the same for y and them multiplying them, which gives us our denominator. For the numberator we  
+$$\sum_{i}^{N}$$ refers to the sum of all z-scores for x time the z-scores for y.
+
+Therefore we can say: The correlation coefficient is equal to the sum of all z-scores for x time all the z-scores for y
+
+###### In what circumstance would it be the largest? Why?
