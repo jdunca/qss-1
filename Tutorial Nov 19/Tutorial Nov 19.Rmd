@@ -1,0 +1,119 @@
+---
+title: "Tutorial Nov 19"
+author: "Jamie Duncan"
+date: "19/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(broom)
+library(ggExtra)
+library(knitr)
+library(kableExtra)
+library(texreg)
+library(tidyverse)
+library(stargazer)
+library(corrplot)
+library(jtools)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+resource <- read_rds("resource.RData")
+```
+
+
+```{r}
+stargazer(resource)
+
+```
+
+```{r}
+
+###Cor plot
+resource %>%
+  select(-country, -year, -regime_vdem_polcom) %>%
+  drop_na() %>%
+  cor() %>% corrplot::corrplot(method="number")
+
+```
+
+```{r}
+resource %>%
+  arrange(imf_divers) %>% #in a descending order
+  mutate(country=factor(country, levels=country)) %>%
+  ggplot(aes(y=imf_divers, x=country)) +
+  geom_segment(aes(xend=country, yend=0)) + #this could be geom_bar, too
+  geom_point(size=2, color="red") +
+  theme_bw() + #adjust layout
+  theme(axis.text.x = element_text(angle = 90, hjust=1, vjust=0.1)) + #adjust country labels
+  ylab("Export Concentration Index") + xlab("Country")
+```
+
+```{r message=FALSE, warning=FALSE}
+bivar <- function(iv) {
+  x.var <- enquo(iv)
+  plot <- ggplot(data = resource, aes(y=imf_divers, x= !! x.var)) +
+  geom_point() +
+  theme_bw() +
+ # geom_smooth(method=lm , color="red") +
+  #stat_smooth(method = "lm", formula = y ~ x + I(x^2), size = 1)+
+  geom_smooth(color="red") +
+  ylab("Export Concentration") + xlab(x.var)
+  ggMarginal(plot, type="histogram")
+}
+bivar(regime_vdem_supportsize)
+```
+
+```{r message=FALSE, warning=FALSE}
+bivar(oil_income_p)
+```
+
+```{r}
+model1 <- lm(imf_divers ~ oil_income_p + protest_gdelt + regime_vdem_supportsize + regime_capacity + debt_gdp,
+   data=resource)
+```
+
+```{r}
+
+htmlreg(model1, digits=2, stars=c(0.01, 0.05, 0.1), 
+        custom.coef.names = c("Intercept", "Oil income per capita",
+                              "Protest Intensity", "Support Size",
+                              "Regime Capacity", "Debt % of GDP"),
+        file="model1-texreg.html") 
+
+## stargazer
+stargazer(model1, out = "model1-stargazer.html",
+          covariate.labels = c("Oil income per capita",
+                              "Protest Intensity", "Support Size",
+                              "Regime Capacity", "Debt % of GDP",
+                              "Intercept"),
+          dep.var.labels = "Export Concentration")
+```
+
+```{r}
+summary(model1)
+```
+
+```{r}
+model.coef <- coef(model1) #coefficients
+model.resid <- residuals(model1) #residuals
+#summary(model1)$r.squared
+#summary(model1)$adj.r.squared
+#summary(model1)$fstatistic
+```
+
+```{r}
+model1.aug <- broom::augment(model1)
+
+ggplot(model1.aug, aes(x=protest_gdelt, y=imf_divers)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_segment(aes(xend= protest_gdelt, yend = .fitted), alpha= .3) + #residual
+  geom_point() + guides(alpha=FALSE) + #data points
+  geom_point(aes(y = .fitted), shape = 2) + #predicted values
+  theme_bw()
+```
+

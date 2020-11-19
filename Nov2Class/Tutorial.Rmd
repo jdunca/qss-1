@@ -1,0 +1,76 @@
+---
+title: "Chechen"
+author: "Jamie Duncan"
+date: "03/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(lubridate)
+set.seed(123)
+options(scipen = 999)
+
+```
+
+```{r}
+agree.final <- read.csv("agree.csv")
+agree.final <- agree.final %>%
+  mutate(recipient = factor(recipient, levels=c(0,1)))
+
+approval<-read.csv("approval_topline.csv")
+approval$modeldate <- lubridate::mdy(approval$modeldate) 
+```
+
+```{r}
+approval %>%
+  subset(subgroup=="All polls") %>%
+  ggplot(aes(x=modeldate)) +
+  geom_line(aes(y=approve_estimate, color="approve_estimate"), size=0.5, alpha=0.8, show.legend=FALSE) +
+  geom_ribbon(aes(ymin=approve_lo, ymax=approve_hi, fill="approve_estimate"), alpha=0.2) +
+  geom_line(aes(y=disapprove_estimate, color="disapprove_estimate"), size=0.5, alpha=0.8, show.legend=FALSE) +
+  geom_ribbon(aes(ymin=disapprove_lo, ymax=disapprove_hi, fill="disapprove_estimate"), alpha=0.2) +
+  scale_colour_manual(values=c("green", "red")) +
+  scale_fill_manual(values=c("green", "red"), labels=c("Approval Rate", "Disapproval Rate")) +
+  scale_x_date(date_breaks = "months" , date_labels = "%b-%y") +
+  geom_line(y=50) +
+  ggthemes::theme_fivethirtyeight() +
+  labs(fill="Estimate", x="Date", y="Rate") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r}
+agree.final %>%
+  filter(year==2020) %>%
+  group_by(recipient) %>%
+  summarise(agree = mean(agree, na.rm=T)) %>%
+  mutate(diff = (agree - lag(agree)))
+```
+
+```{r}
+agree.final %>%
+  subset(year %in% c(2019, 2020)) %>%
+  group_by(recipient, year) %>%
+  summarise(agree = mean(agree, na.rm=T)) %>%
+  mutate(diff = (agree - lag(agree))) 
+```
+
+
+
+```{r}
+agree.final %>%
+  group_by(recipient, year) %>% 
+  summarise(agree = mean(agree, na.rm=T)) %>%
+  ggplot(aes(x=year, y=agree, group=recipient)) +
+  geom_line(aes(color=recipient)) +
+  theme_fivethirtyeight() +
+  geom_vline(xintercept=2019, size=0.4)
+```
+
+
+
+
+
+

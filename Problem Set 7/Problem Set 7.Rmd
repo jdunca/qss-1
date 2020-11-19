@@ -1,0 +1,521 @@
+---
+title: "Problem Set 7"
+author: "Jamie Duncan"
+date: "14/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggpubr)
+library(factoextra)
+foxnews <- read_csv("foxnews.csv")
+migration <- read_csv("migration.csv")
+set.seed(2016)
+options(scipen = 0)
+
+
+```
+
+#### Section 1
+**Note** this code is all copied from the accidentally published answers. I have changed the wording of much of the analysis and I got slightly different results from the clusters than the answer key but there is a lot of non-original content.
+##### Question 1: Examine the mean values for the individual level, household level, and community level characteristics in the dataset. Briefly interpret your answers.
+
+```{r}
+desc.ind <- colMeans(migration[, c("year", "age", "educ", "male")], na.rm = TRUE)
+desc.ind
+```
+
+```{r}
+desc.hh <- colMeans(migration[c("log_nrooms", "log_landval", "n_business", "prop_hhmig")],
+na.rm = TRUE)
+desc.hh
+
+
+```
+
+```{r}
+ desc.commun <- colMeans(migration[,c("prop_cmig", "prop_self", "prop_agri", "prop_lessminwage",
+"log_npop")], na.rm = TRUE)
+desc.commun
+exp(8.9238451)
+
+```
+
+A typical migrant featured in the data migrated in 1986, is 24 years old, and has completed almost 7 years of education. They own land and property but are not business owners. A third of the members of thier household are fellow migrants. They live in small communities (on average 7509 people) with populations of about 10% fellow migrants. Over 85% of the members of their communities earn at least minimum wage.
+
+
+##### Question 2: Use scatterplots to investigate the relationship between prop_self and prop_agri, as well as the relationship between prop_self and log_npop. Briefly interpret these scatter plots and what they imply about selfemployed workers. Do these relationships appear to be independent? What does knowing that a migrant is self-employed tell us about them? Then calcuate the correlation for all possible interactions of the four community level variables: prop_self, prop_agri, prop_lessminwage, and log_npop. Use these correlations to help with your interpretation of the scatter plots. Does adding the prop_lessminwage variable add anything to your interpretation?
+
+```{r}
+## relationship among community level variables
+plot(migration$prop_self, migration$prop_agri, ylim = c(0, 1),
+xlab = "Proportion Self-Employed", ylab = "Proportion in Agriculture")
+```
+
+This plot demonstrates a positive relationship between the number of self-employed people and the number of agricultural workers.
+
+```{r}
+plot(migration$prop_self, migration$log_npop, ylim = c(6.25,16),
+xlab = "Proportion Self-Employed", ylab = "ln(Size Community)")
+
+```
+
+This plot demonstrates a negative relationship between the size of a community and the likelihood that a given migrant is self-employed.
+
+```{r}
+cor <- cor(migration[,c("prop_self", "prop_agri", "prop_lessminwage", "log_npop")],
+use = "complete.obs")
+cor
+```
+
+The correlation matrix confirms the visual trends in the scatter plots. Further to this, we see that agricultural communities also have higher numbers of workers earning sub-minimum wages and somewhat counter-intuitively that in there is a lower number of people working for less than minimum wage in communities with high numbers of self-employed people.
+
+##### Question 3: We’ll focus on the variables: year, educ, log_nrooms, log_landval, n_business, prop_hhmig, prop_cmig, log_npop, prop_self, prop_agri, and prop_lessminwage. Remove observations with missing values. Then, subset your dataset to all of your variables except year, and use the scale() function to standardize the variables in your subsetted dataset so that they are comparable. Compare the means and standard deviations before and after scaling. Standardizing substracts the mean of a variable from each observation and divides by the standard deviation.
+
+```{r}
+mig.sub <- subset(migration, select = c(year, educ, log_nrooms, log_landval, n_business,
+prop_hhmig, prop_cmig, log_npop, prop_self,
+prop_agri, prop_lessminwage))
+## Before scaling
+colMeans(mig.sub[, 2:11]) # or alternatively: apply(mig.sub, 2, mean)
+```
+
+```{r}
+apply(mig.sub[, 2:11], 2, sd)
+```
+
+```{r}
+mig.sub <- na.omit(mig.sub)
+migScale <- scale(mig.sub[, 2:11])
+## After scaling
+colMeans(migScale)
+```
+
+Variables scaled. The means are around zero.
+
+```{r}
+apply(migScale, 2, sd)
+```
+
+Standard deviation is 1.
+
+##### Question 4: Fit the k-means clustering algorithm with three clusters, using the scaled variables from the data set with no missing values. Insert the code set.seed(2016) right before your cluster analysis so that you can compare your results from the kmeans clustering to exercise solutions later. How many observations are assigned to each cluster? Each cluster has a center. What do the centers of these clusters represent? Interpret the type of migrant described by cluster 1. To help witih interpretability, you can also calculate the mean value of the variables for each cluster, using their original scale. Repeat the cluster analysis. This time with four centers. How are the two results different? Is there one you prefer?
+
+```{r}
+cluster3 <- kmeans(migScale, centers = 3)
+## how many observations in each cluster
+table(cluster3$cluster)
+```
+```{r}
+## this gives standardized answer:
+cluster3$centers
+```
+
+```{r}
+## To see the mean values for each cluster in their original scales:
+c1 <- mig.sub[cluster3$cluster == 1, 2:11]
+c1.val <- colMeans(c1)
+c1.val
+
+
+
+```
+```{r}
+ c2 <- mig.sub[cluster3$cluster == 2, 2:11]
+c2.val <- colMeans(c2)
+c2.val
+```
+
+```{r}
+c3 <- mig.sub[cluster3$cluster == 3, 2:11]
+c3.val <- colMeans(c3)
+c3.val
+```
+
+
+
+The clusters each identify a type of migrant based upon their demographic information. The centroids give us a picture of a representative individual from within the cluster.
+
+An individual in cluster 1 has the most education compared to the other two. They likely own property but it is of lower value than that of the others. There are moderately likely to own a business compared to the other types though are least likely to be self-employed. They live in larger urban centres with average populations over 100,000, still about 13% of their communities earns less than minimum wage.
+
+
+```{r}
+ cluster4 <- kmeans(migScale, centers = 4)
+## how many observations in each cluster
+table(cluster4$cluster)
+```
+
+```{r}
+## this gives standardized answer:
+round(cluster4$centers,2)
+```
+
+```{r}
+## To see the mean values for each cluster in their original scales:
+d1 <- mig.sub[cluster4$cluster == 1, 2:11]
+d1.val <- colMeans(d1, na.rm = TRUE)
+d1.val
+```
+
+
+```{r}
+d2 <- mig.sub[cluster4$cluster == 2, 2:11]
+d2.val <- colMeans(d2, na.rm = TRUE)
+d2.val
+```
+
+```{r}
+d3 <- mig.sub[cluster4$cluster == 3, 2:11]
+d3.val <- colMeans(d3, na.rm = TRUE)
+d3.val
+```
+
+```{r}
+d4 <- mig.sub[cluster4$cluster == 4, 2:11]
+d4.val <- colMeans(d4, na.rm = TRUE)
+d4.val
+```
+
+In this model, the first cluster tends to have fewer years of education, smaller properties and land of slightly higher value than clusters 3 and 4 but much less than cluster 2. They are the least likely to own any businesses and second least likely to be self-employed. They are also the least likely to share a household with other migrants. They are mostly from agricultural communities of about 2600 people; these communities have the highest proportion of sub-minimum wage earners.
+
+The two models produce different results. The 4-centre model flags a type of highly connected migrant that is significantly wealthier in terms of land and property compared with the 3-centre cluster. They tend to have more migrants in their households, and live in communities with high rates of self-employment. They have moderate but slightly below-average years of education. The four cluster model offers better distinctions than the 3-cluster model with limited downside so I prefer the 4-cluster model.
+
+#### Section 2
+##### Question 1: We will investigate whether there are any systematic differences in the distribution of some key pre-treatment variables (college1990, black1990, hisp1990, male1990, logincome1990) between towns that received Fox News as compared to those that did not. First, create a new variable called foxnews2000 that takes the value of 1 if the share of Fox News subscribers in a given town is strictly larger than 0 and equals 0 otherwise. Create five Quantile-Quantile plots to assess the similarity of the distributions for towns with and without subscribers across the five variables (college1990, black1990, hisp1990, male1990, logincome1990). Interpret the results. Are there any consistent patterns of differences between the two groups of towns? What do the plots tell you about our ability to make causal inferences regarding the effect of Fox News on the election outcome?
+
+```{r}
+## create a new variable called foxnews2000 that takes the value of 1 if the share of Fox News subscribers in a given town is strictly larger than 0 and equals 0 otherwise
+foxnews$foxnews2000 <- ifelse(foxnews$subrf2000 > 0, 1, 0)
+```
+
+```{r}
+##Create a qq plot to assess the difference between towns with and without for each of the variables.
+qqplot(foxnews$college1990[foxnews$foxnews2000 == 1], foxnews$college1990[foxnews$foxnews2000 == 0]) #qq plot for college
+  abline(0, 1)
+
+```
+
+Towns with access to Fox are, on average, more college educated.
+
+```{r}
+qqplot(foxnews$black1990[foxnews$foxnews2000 == 1], foxnews$black1990[foxnews$foxnews2000 == 0])
+  abline(0, 1)
+```
+
+The higher the propertion of Black residents, the lower the likelihood of access to Fox.
+
+```{r}
+qqplot(foxnews$hisp1990[foxnews$foxnews2000 == 1], foxnews$hisp1990[foxnews$foxnews2000 == 0])
+abline(0,1)
+```
+
+It appears that communities with relatively low numbers of Hispanic residents - which are the most common - tend to receive Fox news at slightly higher rates. As the proportion of Hispanic residents goes up the likelihood of having Fox news appears less likely.
+
+```{r}
+qqplot(foxnews$male1990[foxnews$foxnews2000 == 1], foxnews$male1990[foxnews$foxnews2000 == 0])
+abline(0,1)
+```
+
+Gender does not appear to have significant impacts on access to Fox news channels.
+
+```{r}
+qqplot(foxnews$logincome1990[foxnews$foxnews2000 == 1], foxnews$logincome1990[foxnews$foxnews2000 == 0])
+abline(0, 1)
+```
+
+Towns with incomes slightly higher than the norm are more likely to have access to Fox channels.
+
+##### Question 2: We further examine whether there are any clear differences between those towns that did receive Fox News and those that did not. To do this, apply the k-means algorithm with two clusters to the five variables you analyzed in the previous question. Be sure to remove any missing values and scale each variable so that their means are zero and standard deviations are one, before applying the algorithm. What is the distribution of the clusters with respect to whether or not towns received Fox News? What are the characteristics of each cluster? Explain how this analysis answers the question about our ability to make causal inferences about the electoral effect of Fox News.
+
+```{r}
+##subsetting the data in preparation to scale it in the next step
+foxnews.z <- foxnews %>% 
+  drop_na() %>% 
+  select(college1990, black1990, hisp1990, male1990, logincome1990, foxnews2000)
+
+fox.k <- kmeans(scale(foxnews.z), centers = 2, iter.max = 10, nstart = 5)
+f1 <- foxnews.z[fox.k$cluster == 1, ]
+f2 <- foxnews.z[fox.k$cluster == 2, ]
+f1.val <- colMeans(f1, na.rm = T)
+f2.val <- colMeans(f2, na.rm = T)
+"Cluster 1"
+f1.val
+"Cluster 2"
+f2.val
+
+```
+
+Running a 2-center k-means algorithm on the entire data set yields two clear groups those with and without Fox news. The group that does have Fox is slightly more educated, less Black, slightly more Hispanic, more or less gender balanced, and has a higher average income.
+
+```{r}
+table(fox.k$cluster)
+prop.table(table(fox.k$cluster))
+```
+11 percent of (458) communities in the data set had access to Fox news.
+
+```{r}
+##scaling the data and running the k-means clustering algorithm with 2 centres against 
+college.k <- kmeans(scale(foxnews.z$college1990), centers = 2, iter.max = 10, nstart = 5)
+
+c1 <- foxnews.z[college.k$cluster == 1, ]#connecting the cluster back to the original scale
+c2 <- foxnews.z[college.k$cluster == 2, ]
+c1.val <- colMeans(c1, na.rm = TRUE) #calculating the average for each variable
+c2.val <- colMeans(c2, na.rm = TRUE)
+"cluster 1"
+c1.val #printing the average 
+"cluster 2"
+c2.val
+```
+
+If we cluster by level of college education we see two types of community: those with high levels of college education at 35% and those with relatively little attainment of college education at 12%. The more educated communities have fewer Black residents, a relatively even number of Hispanic and male residents but have a significantly higher average income and receive Fox news at rate 1% higher that the communities with lower attainment.
+
+```{r}
+ggplot(foxnews.z, aes(x = foxnews2000, y = college1990, color = college.k$cluster))+ #visualizing as a jitter plot
+  geom_jitter()
+```
+This jitter plot shows the distribution of the college clusters broken down by whether they received Fox coverage.
+
+
+```{r}
+##see code annotation for collage variable for details
+black.k <- kmeans(scale(foxnews.z$black1990), centers = 2, iter.max = 10, nstart = 5)
+
+b1 <- foxnews.z[black.k$cluster == 1, ]
+b2 <- foxnews.z[black.k$cluster == 2, ]
+b1.val <- colMeans(b1, na.rm = TRUE)
+b2.val <- colMeans(b2, na.rm = TRUE)
+"cluster 1"
+b1.val
+"cluster 2"
+b2.val
+```
+
+Running the two centre cluster on the variable measuring the proportion of Black residents, we can see that the algorithm separates this demographic into a small group of relatively wealthy Black residents that live in mostly non-Black neighbourhoods. They receive Fox at 6% greater rates than the less educated cluster, which tends to live in communities with high propertions of Black residents and average income less than half of the first group.
+
+```{r}
+ggplot(foxnews.z, aes(x = foxnews2000, y = black1990, color = black.k$cluster))+
+  geom_jitter()
+```
+This jitter plot shows the distribution of the Black demographic clusters broken down by whether they received Fox coverage.
+
+```{r}
+hisp.k <- kmeans(scale(foxnews.z$hisp1990), centers = 2, iter.max = 10, nstart = 5)
+
+h1 <- foxnews.z[hisp.k$cluster == 1, ]
+h2 <- foxnews.z[hisp.k$cluster == 2, ]
+h1.val <- colMeans(h1, na.rm = TRUE)
+h2.val <- colMeans(h2, na.rm = TRUE)
+"cluster 1"
+h1.val
+"cluster 2"
+h2.val
+
+```
+
+Running the two centre cluster on the Hispanic demographic variable reveals that there is less disparity within this community. While the cluster separates this demographic into slightly more and less educated groups with a simialr trend in income. The biggest difefrence betweent he two groups is whether residents live in areas with a high concentration of Hispanic residents or not. The group that lives in less Black, less Hispanic neighborhoods receives Fox at a rate 1% higher than those that live in Neighbourhoods with more Black and Hispanic residents.
+
+```{r}
+ggplot(foxnews.z, aes(x = foxnews2000, y = hisp1990, color = hisp.k$cluster))+
+  geom_jitter()
+```
+This jitter plot shows the distribution of the Hispanic demographic clusters broken down by whether they received Fox coverage.
+
+```{r}
+male.k <- kmeans(scale(foxnews.z$male1990), centers = 2, iter.max = 10, nstart = 5)
+
+m1 <- foxnews.z[male.k$cluster == 1, ]
+m2 <- foxnews.z[male.k$cluster == 2, ]
+m1.val <- colMeans(m1, na.rm = TRUE)
+m2.val <- colMeans(m2, na.rm = TRUE)
+"cluster 1"
+m1.val
+"cluster 2"
+m2.val
+
+```
+
+Running the two centre cluster on the male demographic variable reveals two types: communities with slightly lower rates of college completion and high proportions of men at 51% of the population. Those communities tend to have fewer Black and Hispanic residents and receive higher incomes. They have access to Fox at marginally higher rates of 1% rounded up.
+
+```{r}
+ggplot(foxnews.z, aes(x = foxnews2000, y = male1990, color = male.k$cluster))+
+  geom_jitter()
+```
+This jitter plot shows the distribution of the Male demographic clusters broken down by whether they received Fox coverage.
+
+```{r}
+logincome.k <- kmeans(scale(foxnews.z$logincome1990), centers = 2, iter.max = 10, nstart = 5)
+
+i1 <- foxnews.z[logincome.k$cluster == 1, ]
+i2 <- foxnews.z[logincome.k$cluster == 2, ]
+i1.val <- colMeans(i1, na.rm = TRUE)
+i2.val <- colMeans(i2, na.rm = TRUE)
+"cluster 1"
+i1.val
+"cluster 2"
+i2.val
+```
+Running the two centre cluster on the income variable reveals, unsurprisingly, a type of community with wealthier and more educated residents. The wealthier communities tend to have lower numbers of Black residents, more Hispanic residents, and receive Fox news at a rate roughly 3% higher than the less wealthy and educated communities.
+
+```{r}
+ggplot(foxnews.z, aes(x = foxnews2000, y = logincome1990, color = logincome.k$cluster))+
+  geom_jitter()
+```
+This jitter plot shows the distribution of the income clusters broken down by whether they received Fox coverage.
+
+##### Question 3: We begin to examine the relationship between the exposure to Fox News in 2000 and the change in the GOP’s vote share from the 1996 to the 2000 Presidential election. First, create a new variable that measures the difference between the Republican vote share in 2000 and in 1996. Compute the correlation between this new variable and subrf2000 and provide an interpretation of the result.
+
+```{r}
+foxnews <- foxnews %>% 
+  drop_na() %>% 
+  mutate(gopvotediff = gopvoteshare2000 - gopvoteshare1996)
+
+cor.test(foxnews$gopvotediff, foxnews$subrf2000, method = "pearson")
+```
+ There is a weak negative correlation between the vote difference variable and Fox subscriptions.
+
+##### Question 4: We now estimate the causal effect of Fox News on the Republicans’ vote share. For this question, use foxnews2000 to measure exposure to Fox News. Interpret the results. What estimation strategy did you use to identify this causal effect? What is the assumption required for this analysis to be valid? Interpret this assumption in the context of this particular question. In your view, how credible is this assumption? Use the 1992 and 1996 election outcomes, both of which took place before the creation of the Fox News channel, to probe the credibility of the assumption.
+
+
+```{r}
+prefoxfit <- lm(foxnews2000 ~ gopvoteshare2000 + gopvoteshare1996 + gopvoteshare1992, data = foxnews)
+summary(prefoxfit)
+```
+
+Running a regression doesn't give us any thing of particular value. It shows that there is a weak relationship between GOP vote share in 1996 and receiving Fox coverage. I am going to run a difference in differences before and after study design, which makes the entirely too broad assumption that other factors won't impact the Republican vote share. The results produced through this analysis will not be sufficient to make strong causal claims.
+
+```{r message=FALSE}
+##calculating republican voteshare for the 2000 and 1996 elections grouped by access to Fox news
+
+DiD1 <- foxnews %>% 
+  group_by(foxnews2000) %>% 
+  summarize("2000" = mean(gopvoteshare2000), "1996" = mean(gopvoteshare1996)) 
+
+DiD1
+
+```
+```{r}
+##calculating the difference in differences
+did.a <- DiD1[2, ] - DiD1[1, ] #by subtracting voteshare in towns treated with Fox from that in towns not treated with Fox.
+did.a[,2] - did.a[,3] #calculating the before and after by subtracting the difference pre-Fox news from the difference post-Fox news
+
+```
+
+The differences between the treated and control groups for the before and after periods are almost identical.
+
+```{r message=FALSE}
+##same as DiD1
+DiD0 <- foxnews %>% 
+  group_by(foxnews2000) %>% 
+  summarize("1996" = mean(gopvoteshare1996), "1992" = mean(gopvoteshare1992))
+DiD0
+
+
+```
+
+```{r}
+##same as did.a
+did.b <- DiD0[2, ] - DiD0[1, ]
+did.b[, 2] - did.b[, 3]
+
+```
+
+The differences between the treated and control groups for the two elections before treatment are also almost identical.
+
+##### Question 5: We further divide the towns that received Fox News into three groups based on the share of Fox News subscribers. Among the towns who received Fox News, the ‘High exposure’ group represents the group of towns whose share of subscribers is greater than or equal to the 66 percentile (among those who received Fox News). In contrast, the ‘Low exposure’ group represents the group of towns whose share of subscribers is less than or equal to the 33 percentile (among those who received Fox News). Conduct the same analysis as in the previous question but separately for the ‘High exposure’ and ‘Low exposure’ groups where the control group is the ‘No exposure’ group. Interpret the results.
+
+```{r}
+
+foxnews <- foxnews %>% 
+  mutate(exposure = case_when(subrf2000 == 0 ~ 0, subrf2000 <= quantile(subrf2000[foxnews2000 == 1], 0.33) ~ 1, subrf2000 >= quantile(subrf2000[foxnews2000 == 1], 0.66) ~ 2)) #adding a variable called exposure and populating it with 0 for no exposure, 1 for low exposure, and 2 for high exposure.
+
+```
+
+```{r message=FALSE}
+DiD1b <- foxnews %>%
+  group_by(exposure) %>% #grouping by exposure
+  drop_na() %>% # we created NAs for values that fall between .33 and .66 percentiles that we need to drop
+  summarise("2000" = mean(gopvoteshare2000), "1996" = mean(gopvoteshare1996)) #summarizing the average votes shares for 2000 and 1996
+DiD1b
+
+```
+
+```{r}
+did.c <- DiD1b[3, ] - DiD1b[1, ] #ATE for the high exposure group
+did.d <- DiD1b[2, ] - DiD1b[1, ] #ATE for the low exposure group
+did.c[, 2] - did.c[, 3] #diff in diff for high exposure
+did.d[, 2] - did.d[, 3] #diff in diff for low exposure
+
+```
+
+There are slight differences between the high and low exposure groups. However, the differences between the treated and control groups for the before and after periods are almost identical. We do see about a 1% gain in support for the Republicans among the low-exposure group.
+
+```{r message=FALSE}
+##same as DiD1b
+DiD0b <- foxnews %>% 
+  group_by(exposure) %>% 
+   drop_na() %>% 
+  summarise("1996" = mean(gopvoteshare1996), "1992" = mean(gopvoteshare1992))
+DiD0b
+```
+
+```{r}
+##same as did.c and did.d
+did.e <- DiD0b[3, ]- DiD0b[1, ]
+did.f <- DiD0b[2, ] - DiD0b[1, ]
+did.e[, 2] - did.e[, 3]
+did.f[, 2] - did.f[, 3]
+
+```
+
+There are negligible differences between the high and low exposure groups in this case. The differences between the treated and control groups for the two elections before treatment are almost identical. We see a gain in support of almost 1% for the Republicans among both groups between the 1992 and 1996 elections.
+
+##### Question 6: Finally, we consider the effect of having access to Fox News (as measured by foxnews2000) on the Republican vote share for each state. Repeat the analysis you have done in Question 4 for each state and compute a state-specific estimate of the Fox News effect (whenever possible). Create a histogram of state-specific effects to examine how much the magnitude of the Fox News effect varies across states. Interpret the results. Finally, compare the average effect across states with the estimate you obtained in Question 4. What does this comparison suggest about the validity of the assumption made in Question 4?
+
+```{r message=FALSE}
+
+DiD6 <- foxnews %>% 
+  group_by(state, foxnews2000) %>% #grouping by state, then by treatment
+  summarize("2000" = mean(gopvoteshare2000), "1996" = mean(gopvoteshare1996), "1992" = mean(gopvoteshare1992)) #summarizing by GOP voteshare for the three elections
+
+```
+
+```{r}
+DiD6.ate <- DiD6 %>%
+  group_by(state) %>% #group by state
+  arrange(state, foxnews2000) %>% #arrange by state and treatment
+  mutate(diff2000 = last(`2000`) - first(`2000`)) %>% #subtract the non-treated values from the treated values for each election
+  mutate(diff1996 = last(`1996`) - first(`1996`)) %>%
+  mutate(diff1992 = last(`1992`) - first(`1992`)) %>% 
+  ungroup() %>% #ungroup the df
+  filter(foxnews2000 == 1) %>% #the values are all doubled and we only need half of them
+  select(-foxnews2000, -`2000`, -`1996`, -`1992`)#we can also get rid of these columns 
+DiD6.ate$did.a <- DiD6.ate$diff2000 - DiD6.ate$diff1996 #before and after difference in ATE
+DiD6.ate$did.b <- DiD6.ate$diff1996 - DiD6.ate$diff1992 #before and before difference in ATE
+DiD6.ate$did.c <- DiD6.ate$did.a - DiD6.ate$did.b #treated difference minus non-treated differences
+DiD6.ate
+
+```
+
+```{r}
+
+ggplot(DiD6.ate, aes(x = did.a, fill = state))+
+  geom_histogram()+
+  labs(title = "Difference in Difference Treatment Effects by State")+
+  stat_bin(binwidth = 0.01)
+
+
+ggplot(DiD6.ate, aes(x = did.b, fill = state))+
+  geom_histogram()+
+  labs(title = "Difference in Difference Control by State")+
+  stat_bin(binwidth = 0.01)
+
+
+ggplot(DiD6.ate, aes(x = did.c, fill = state))+
+  geom_histogram()+
+  labs(title = "Difference in different differences: Before and after minus before and before")+
+  stat_bin(binwidth = 0.01)
+
+```
+There appears are more states where Fox news exposure is associated with shrinking Rebublican margins. The presence of negative numbers means that the difference between 2000 and 1996 is smaller than the difference between 1996 and 1992. The majority of states are clustered around 0 or slightly less.

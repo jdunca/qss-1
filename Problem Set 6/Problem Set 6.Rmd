@@ -29,104 +29,144 @@ afb$ethnicpercent2 <- ifelse(afb$ethnicpercent > mean(afb$ethnicpercent), 1, 0) 
 ###### What is the average willingness to vote for the president among all respondents? Now compute the average willingess separately for respondents who are coethnic with the presidential wife and respondents who are not. Given our initial hypothesis about how a president might be able to use his wife’s ethnicity to get more support, how might we interpret the differences (or similarities) in the support amongst coethnics and noncoethnics?
 
 ```{r message=FALSE, warning=FALSE}
-mean(afb$vote)
-
-afb %>% 
-  group_by(wifecoethnic) %>% 
-  summarise(mean(vote))
+mean(afb$vote) #average willingness to vote for the president
 
 
 ```
 
+The average willingness to vote for the president is 55%.
+
+```{r}
+afb %>% #in afb
+  group_by(wifecoethnic) %>% #show me the mean willingness to vote for the president indexed by wifecoethnic
+  summarise(mean(vote))
+```
+
+The average willingness to vote for the president if one is co-ethinic with the president's wife is 34%. The willingness of those **not** co-ethnic with the president's wife to vote for the president is 61%
 
 ##### Question 3
 ##### We might be concerned that we have not taken into account potentially confounding factors such as whether 1) the respondent is part of a proportionally larger or smaller ethnic group and 2) whether the respondent is also coethnic with the major opposition leader. This is because if a respondent’s ethnic group is quite small, the members might be less able to put forth a candidate of their exact ethnic label and have more incentive to support a president who, while not the same ethnicity, has a wife who does (and who therefore might have the wife’s ethnic group interests at heart). It may also be that should an opposition candidate hold the same ethnicity as the respondent, such a “wife effect” might be diminished.  
 
 To investigate this possibility, subset the afb data to adjust for potential confounding variable ethnicpercent2 created in the previous question. Consider the group of individuals who are of smaller than average ethnic groups. What is the average willingness to vote between wife coethnics and wife noncoethnics?
-
-```{r}
+vote 
+```{r message=FALSE, warning=FALSE}
 afb %>% 
-  filter(ethnicpercent2 == 0) %>% 
-  group_by(wifecoethnic) %>% 
+  filter(ethnicpercent2 == 0) %>% #Consider the group of individuals who are of smaller than average ethnic groups
+  group_by(wifecoethnic) %>% #Within this subset show me the mean willingness to vote for the president indexed by wifecoethnic
   summarise(mean(vote))
 
 ```
+In cases where the president's wife is part of a smaller than average ethnic group the average willingness to vote for the president if one is co-ethinic with the president's wife is 89%. The willingness of those **not** co-ethnic with the president's wife to vote for the president is 57%.
+
 
 Next, consider only the group of individuals who are not only from smaller than average ethnic groups but are also not coethnic with the opponent. What is the difference in average willingness to vote between wife coethnics and wife noncoethnics now? What do these results tell us about the relationship between the “wife effect”?
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 afb %>% 
-  filter(ethnicpercent2 == 1) %>% 
-  group_by(wifecoethnic) %>% 
+  filter(ethnicpercent2 == 0 & oppcoethnic == 0) %>% #subset by voters of smaller than average ethnic groups that are not co-ethnic with the opponent
+  group_by(wifecoethnic) %>% #Within this subset show me the mean willingness to vote for the president indexed by wifecoethnic
   summarise(mean(vote))
 
 ```
+Within the subset of voters who are not only from smaller than average ethnic groups but are also not co-ethnic with the opponent the average willingness to vote for the president if one is co-ethnic with the president's wife is 90%. The willingness of those **not** co-ethnic with the president's wife to vote for the president is 57%. This is largely the same as just cases where the president's wife is part of a smaller than average ethnic group indicating that either being co-ethnic with the opponent has a negligible effect **or** that viable opponents to the president don't tend to come from smaller ethnic groups.
+
 
 ##### Question 4
 ##### The Afrobarometer data, while rich and inclusive of many countries, is observational data. Thus, it is difficult to estimate the effect of treatment, which is coethnicity with the president’s wife in the current application. To address this difficulty, the authors of the study conduct a survey experiment in Benin, a small democracy on the western coast of the African continent. It is also a country represented in the Afrobarometer data set. The president at the time of the survey was Yayi Boni, who is of two ethnicities, Nago and Bariba. His wife Chantal is Fon. For the experiment, the authors randomly surveyed adult walkers on the streets of Cotonou (the capital of Benin). Respondents were asked some personal information, such as gender and age, as well as their ethnicity. Then, respondents were randomly assigned to either the control or one of two treatment groups (Wife and Fon Wife):  
 In the control condition, respondents were read the following short biographical sketch of Yayi Boni, where there is no indication of the president’s wife, Chantal:  
 Yayi Boni became President of Benin on April 6, 2006 and was just re-elected for a second term. He has led a presidential campaign based on economic growth and suppressing corruption. However, some critics claim that the country’s economic growth has been disappointing, and that Boni’s administration is, itself, corrupt.  
-In the first treatment group, Wife, respondents were read the same passage as the control group, except the president’s wife Chantal is explicitly mentioned at the beginning. That is, the above script is preceded with “Accompanied by his wife, Chantal”. In the second treatment group, Fon Wife, respondents were read again the same passage, except the ethnicity of Chantal is explicitly mentioned with the script starting by “Accompanied by his Fon wife, Chantal”.  
+In the first treatment group, Wife, respondents were read the same passage as the control group, except the president’s wife Chantal is explicitly mentioned at the beginning. That is, the above script is preceded with “Accompanied by his wife, Chantal”. In the second treatment group, Fon Wife, respondents were read again the same passage, except the ethnicity of Chantal is explicitly mentioned with the script starting by “Accompanied by his Fon wife, Chantal”.
+
 Now we turn to the benin dataset. 
 
 
 ```{r message=FALSE, warning=FALSE}
-benin <- read_csv("benin.csv")
+benin <- read_csv("benin.csv") #readin the benin data
 ```
 
 
 ##### Does being reminded that you are coethnic with the president’s wife increase your willingness to vote for the president?
 ```{r message=FALSE, warning=FALSE}
-benin %>% 
-  filter(ethnicity == "Fon") %>% 
-  group_by(passage) %>% 
-  summarise(mean(vote))
+
+tapply(benin$fon, benin$ethnicity, mean) #Testing the Fon variable 
+
 ```
 
-##### The data has already been subsetted from the original experiment data so it contains only respondents who are not coethnic with the president (why would this be important to consider?).  
+I decided to test the variables before using them and discovered that in the 'fon' variable that both Mahi and Fon were coded as 1. According to the UNHCR: "Mahi are an ethnic group, living north of Abomey who were a prime target in pre-colonial raids for slaves by Fon, to whom they are closely related." (https://www.refworld.org/docid/4954ce26c.html) While I know next to nothing about ethnic relations in Benin, I haven't found any other source that conflates these two groups...
+
+
+```{r message=FALSE, warning=FALSE}
+benin %>% 
+  filter(ethnicity == "Fon") %>% #subset for only Fon voters
+  group_by(passage) %>% #Within this subset show me the mean willingness to vote for the president indexed by treatment
+  summarise(mean(vote))
+
+```
+
+```{r}
+benin %>% 
+  filter(fon == 1) %>% #subset for Fon voters according to the Fon variable
+  group_by(passage) %>% #Within this subset show me the mean willingness to vote for the president indexed by treatment
+  summarise (mean(vote))
+```
+
+There is no significant difference between the subset that includes Mahi voters and not. Within the subset of voters who are co-ethnic with Chantal Boni (according to the fon variable), the average willingness to vote for the president given the control treatment is 19%. Given the treatment of a message that mentions his wife, that number drops to 13%. With the FonWife treatment, the willingness to vote for the president surges to 41%. It appears being reminded that one is co-ethnic with the president’s wife increases willingness to vote for the president.
+
+
+##### The data has already been subsetted from the original experiment data so it contains only respondents who are not coethnic with the president (why would this be important to consider?).
+
+It has been shown in the Benin that the president can draw upon co-ethnic support from both of his paternal and maternal ethnic backgrounds: Nago and Bariba (see Adida 2015). By separating presidential co-ethnic voters, we can more clearly observe the impacts of being co-ethnica with Chantal.
+
+Adida, C. L. (2015). Do African voters favor coethnics? Evidence from a survey experiment in Benin. Journal of Experimental Political Science, 2(01), 1-11.
 
 ##### Take a closer look at the ethnicity variable by creating a table. How many ethnic groups are there represented in this dataset?
 
 ```{r}
-b.eth <- table(benin$ethnicity)
+b.eth <- table(benin$ethnicity) #create a table of the ethnicity variable 
 b.eth
-length(b.eth)
+length(b.eth) #how many groups are reporesented?
 
 ```
 
+There are 19 ethnic groups represented in the data.
 
-##### Compare the mean willingness to vote for the president between the Fon Wife and control group. Briefly interpret the result. Was it important for the researchers to add a treatment with just the mention of the president’s wife without her ethnicity? Why or why not?
+##### Compare the mean willingness to vote for the president between the Fon Wife and control group. Briefly interpret the result
 
 ```{r message=FALSE}
 benin %>% 
-  group_by(passage) %>% 
+  group_by(passage) %>% #Within the data show me the mean willingness to vote for the president indexed by treatment
   summarise(mean(vote))
 ```
 
+It appears that the Fon wife treatment increases the likelihood of voters to support the president by 5% with a  total of 49% of voters planning to vote for him.
+
+
+##### Was it important for the researchers to add a treatment with just the mention of the president’s wife without her ethnicity? Why or why not?
+
+Yes. This shows that mentioning the president's wife in general lowers voters' willingness to vote for him. This bolsters the finding that the president can draw upon support from voters that are co-ethnic with his wife by emphasizing this fact in political communications.
+
 ##### Question 5
-##### Now compare the mean willingness to vote for the president between the Fon Wife and control group for wife coethnics only (load coethnic.csv file). Briefly interpret the result. What happens when we compare wife coethnics in the Fon Wife to the Wife group? The Wife to the control group? Do these results apply to respondents who are NOT coethnic with the president’s wife (load noncoethnic.csv file)?
 
 ```{r message=FALSE}
 coethnic <- read_csv("coethnic.csv")
 noncoethnic <- read_csv("noncoethnic.csv")
-
 ```
 
+##### Now compare the mean willingness to vote for the president between the Fon Wife and control group for wife coethnics only (load coethnic.csv file). Briefly interpret the result. What happens when we compare wife coethnics in the Fon Wife to the Wife group? The Wife to the control group?
 
 ```{r message=FALSE, warning=FALSE}
 coethnic %>% 
-  group_by(passage) %>% 
+  group_by(passage) %>% #Within this subset show me the mean willingness to vote for the president indexed by treatment
   summarise(mean(vote))
 
 ```
+Within the subset of voters who are co-ethnic with Chantal Boni , the average willingness to vote for the president given the control treatment is 19%. Given the treatment of a message that mentions his wife, that number drops to 13%. With the FonWife treatment, the willingness to vote for the president surges to 41%. As discussed above, this indicates that that mentioning the president's wife in general lowers Fon voters' willingness to vote for him from 19% to 13%. However, by specifying that his wife is Fon, the likelihood of voters supporting the president increases significantly to 41%
 
+##### Do these results apply to respondents who are NOT coethnic with the president’s wife (load noncoethnic.csv file)?
 ```{r message=FALSE, warning=FALSE}
 noncoethnic %>% 
-  group_by(passage) %>% 
+  group_by(passage) %>% #Within the data show me the mean willingness to vote for the president indexed by treatment
   summarise(mean(vote))
 ```
-
-
-
-
+These results do not extend to non-Fon voters. The only trend that continues is that mentioning the president's wife hurts voters' likelihood of supporting him. In this subset, 71% of voters in the control group intend of voting for the president, however when his wife is mentioned, that figure shrinks to 58%. The number descends even further  to 55% when her Fon ethnicity is mentioned. 
