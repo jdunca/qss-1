@@ -1,0 +1,98 @@
+---
+title: "PS8"
+author: "Jamie Duncan"
+date: "20/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(tidyverse)
+```
+
+#### Section 1
+##### Question 1
+Read the data into an data frame named electric.
+```{r}
+electric <- read_csv("electric-company.csv")
+```
+
+What sort of variable has R assumed grade is? How will it be treated in a linear model if we use it as an independent variable? Under what circumstances would that be reasonable or unreasonable? Make a new variable from grade that is a factor.
+```{r}
+
+class(electric$grade)
+electric$grade.fac <- as.factor(electric$grade)
+
+```
+
+read_csv has assumed that "grade" is a "numeric variable"
+
+How will a linear model treat this new variable? Hint: You may find that summary illuminates the new data set.
+```{r}
+summary(electric$grade.fac)
+
+```
+
+Finally, overwrite the existing treatment variable so that it is numerical: 1 when the class is treated and 0
+when not.
+```{r}
+electric <- electric %>% #replace old df with new df
+  mutate(treatment = if_else(treatment == "T", 1, 0)) #overwrite treatment: if the variable equals "T" put a 1, otherwise put a zero
+```
+
+##### Question 2
+Let’s now consider the effect of treatment. First, fit a linear model that predict post.score with just treatment. Then fit a model uses your factor version of grade as well as treatment. 
+
+```{r}
+fit.score <- lm(post.score ~ treatment, data = electric)
+
+summary(fit.score)
+
+
+```
+
+```{r}
+
+fit.grade <- lm(post.score ~ treatment + grade.fac, data = electric)
+summary(fit.grade)
+
+```
+Summarise both models in terms of how much of the variance in post.score they “explain” and the median size of their errors.  
+
+Now, consider each model’s treatment coefficient. Are the estimates of this coefficient different in the two models? Why do you think that is?
+
+##### Question 3
+Now make another model that uses the factor version of grade and pre.score (the reading score before the year begins) to predict post.score. Is this model better? If so, in what ways?
+
+```{r}
+fit.score <- lm(post.score ~ pre.score + grade.fac, data = electric)
+
+summary(fit.score)
+```
+
+##### Question 4
+
+Now let’s consider the effect of treatment within each grade. We can use the lm function’s subset argument to fit the model on just a subset of all the rows in the data set. For example, we can fit a model of the relationship of post.score to treatment and pre.score just in grade 2 like this: 
+mod <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade == 2) 
+
+Fit a linear model predicting post.score using treatment and pre.score for each grade. You need to follow the following procedures:
+  1. Define a function named fit_reg that returns the coefficient on treatment. The function should have two arguments: the entire data (data_all)      and the grade (grade_subset). 
+  2. Use a for loop and call the fit_reg() function for each grade (1 to 4). Store what the fit_reg() function returns in a variable. 
+  3. Print out the coefficient on treatment using the print() function. 
+  4. Briefly comment on the result. There are now four treatment effects. How do they differ as grade increases?
+
+
+##### Question 5
+##### Question 6
+
+#### Section 2
+##### Question 1
+##### Question 2
+##### Question 3
+##### Question 4
+##### Question 5
+##### Question 6
