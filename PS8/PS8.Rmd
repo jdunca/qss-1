@@ -72,27 +72,193 @@ Now make another model that uses the factor version of grade and pre.score (the 
 fit.score <- lm(post.score ~ pre.score + grade.fac, data = electric)
 
 summary(fit.score)
+
+fit.score$coefficients
+
 ```
 
 ##### Question 4
 
-Now let’s consider the effect of treatment within each grade. We can use the lm function’s subset argument to fit the model on just a subset of all the rows in the data set. For example, we can fit a model of the relationship of post.score to treatment and pre.score just in grade 2 like this: 
-mod <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade == 2) 
+Now let’s consider the effect of treatment within each grade. We can use the lm function’s subset argument to fit the model on just a subset of all the rows in the data set. For example, we can fit a model of the relationship of post.score to treatment and pre.score just in grade 2 like this:  mod <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade == 2) 
 
 Fit a linear model predicting post.score using treatment and pre.score for each grade. You need to follow the following procedures:
-  1. Define a function named fit_reg that returns the coefficient on treatment. The function should have two arguments: the entire data (data_all)      and the grade (grade_subset). 
-  2. Use a for loop and call the fit_reg() function for each grade (1 to 4). Store what the fit_reg() function returns in a variable. 
-  3. Print out the coefficient on treatment using the print() function. 
+  1. Define a function named fit_reg that returns the coefficient on treatment. The function should have two arguments: the entire data     (data_all) and the grade (grade_subset).  
+  2. Use a for loop and call the fit_reg() function for each grade (1 to 4). Store what the fit_reg() function returns in a variable.   
+  3. Print out the coefficient on treatment using the print() function.   
   4. Briefly comment on the result. There are now four treatment effects. How do they differ as grade increases?
+  
+  
+```{r}
 
+fit1 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 1)
+fit2 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 2)
+fit3 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 3)
+fit4 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 4)
+
+fit1$coefficients
+fit2$coefficients
+fit3$coefficients
+fit4$coefficients
+
+```
+
+```{r}
+data_all <- electric
+grade_subset <- unique(electric$grade.fac)
+
+fit_reg <- function(df, param){
+  mod <- lm(post.score ~ treatment + pre.score, data = df, subset = grade == param)
+}
+
+for (i in grade_subset){ 
+  model <- fit_reg(data_all, i)
+  print(model$coefficients) 
+}
+```
 
 ##### Question 5
+Now let’s try to learn about separate grade effects in a single model. One way to do this is to interact
+treatment with grade. Here’s a general modeling principle:
+
+If you think the effect of variable A varies according to the values of variable B, then you should think of adding an interaction between A and B in your model Reminder: In the lm formula interface this amounts to adding an `A:B` term. For example, if A and B interact to predict Y then the formula would be `Y ~ A + B + A:B` which would fit the model $Yi = \beta_0 + \beta_AA_i + \beta_BB_i + \beta_{AB} (A_i × B_i) + \epsilon_i$ an alternative syntax to fit this model is `A*B`. So to fit the model above using this notation the formula is `Y ~ A * B`
+
+Since we always want to have A and B if we have an A:B term, the * notation makes sure we don’t forget any of them. But they are equivalent.   
+
+Fit a model of all the grades that includes pre.score, treatment, grade (factor version), the factor version of grade interacted with treatment, and the factor version of grade interacted with pre.score (this is called a fully interacted model). How would you construct grade-specific treatment effects from these coefficients? Show an example for grade 2.
+
+```{r}
+fit.inter <- lm(post.score ~ grade.fac * treatment * pre.score, data = electric)
+
+summary(fit.inter)
+```
+
 ##### Question 6
+Use a bar plot to visualize the grade-specific treatment effects that you calculated in the previous question. Briefly interpret the result. Hint: You can make a bar plot using a barplot() function (textbook p.81)
+```{r}
+
+```
 
 #### Section 2
+```{r message=FALSE, warning=FALSE}
+imm <- read_csv("immig.csv")
+library(rstatix)
+library(ggcorrplot)
+```
+
 ##### Question 1
+Start by examining the distribution of immigration attitudes (as factor variables). What is the proportion of people who are willing to increase the quota for high-skilled foreign professionals (h1bvis.supp) or support immigration from India (indimm.supp)? 
+```{r}
+imm$h1bvis.supp <- as.factor(imm$h1bvis.supp)
+"h1bvis.supp"
+prop.table(summary(imm$h1bvis.supp))
+
+
+imm$indimm.supp <- as.factor(imm$indimm.supp)
+"indimm.supp"
+prop.table(summary(imm$indimm.supp))
+
+```
+
+
+Now compare the distribution of two distinct measures of cultural threat: explicit stereotyping about Indians (expl.prejud) and implicit bias against Indian Americans (impl.prejud). In particular, create a scatterplot, add a linear regression line to it, and calculate the correlation coefficient. Based on these results, what can you say about their relationship?
+
+```{r}
+ggplot(imm, aes(x = expl.prejud, y = impl.prejud))+
+  geom_point()+
+  geom_smooth(method = lm, formula = y ~ x)
+
+fit.prejud <- lm(impl.prejud ~ expl.prejud, data = imm)
+summary(fit.prejud)
+
+```
+
 ##### Question 2
+Compute the correlations between all four policy attitude and cultural threat measures. Do you agree that cultural threat is an important predictor of immigration attitudes as claimed in the literature?  
+```{r}
+cordata <- imm %>% 
+  select(h1bvis.supp, indimm.supp, expl.prejud, impl.prejud) %>% 
+  cor_mat() %>% 
+  print()
+
+```
+
+
+If the labor market hypothesis is correct, opposition to H-1B visas should also be more pronounced among those who are economically threatened by this policy such as individuals in the high-technology sector. At the same time, tech workers should not be more or less opposed to general Indian immigration because of any economic considerations. First, regress H-1B and Indian immigration attitudes on the indicator variable for tech workers (tech.whitcol). Do the results support the hypothesis? Is the relationship different from the one involving cultural threat and, if so, how?
+
+```{r}
+tech.fit <- lm(tech.whitcol ~ h1bvis.supp + indimm.supp, data = imm)
+summary(tech.fit)
+```
 ##### Question 3
+
+When examining hypotheses, it is always important to have an appropriate comparison group. One may argue that comparing tech workers to everybody else as we did in Question 2 may be problematic due to a variety of confounding variables (such as skill level and employment status). First, create a single factor variable group which takes a value of tech if someone is employed in tech, whitecollar if someone is employed in other “white-collar” jobs (such as law or finance), other if someone is employed in any other sector, and unemployed if someone is unemployed. Then, compare the support for H-1B across these conditions by using the linear regression. Interpret the results: is this comparison more or less supportive of the labor market hypothesis than the one in Question 2?   
+
+```{r}
+imm.wc$whitecollar[imm.wc$employed == 1] <- "other"
+imm.wc$whitecollar[imm.wc$employed == 0] <- "unemployed"
+imm.wc$whitecollar[imm.wc$tech.whitcol == 1] <- "tech"
+imm.wc$whitecollar[imm.wc$nontech.whitcol == 1] <- "whitecollar"
+```
+
+```{r}
+h1bfit <- lm(h1bvis.supp ~ factor(whitecollar), data = imm.wc)
+summary(h1bfit)
+```
+
+Now, one may also argue that those who work in the tech sector are disproportionately young and male which may confound our results. To account for this possibility, fit another linear regression but also include age and female as pre-treatment covariates (in addition to group). Does it change the results and, if so, how?
+
+```{r}
+
+h1bfit2 <- lm(h1bvis.supp ~ factor(whitecollar) + age + female, data = imm.wc)
+summary(h1bfit2)
+
+```
+
+Finally, fit a linear regression model with all threat indicators (group, expl.prejud, impl.prejud) and calculate its R2. How much of the variation is explained? Based on the model fit, what can you conclude about the role of threat factors?
+
+```{r}
+threat.fit <-  lm(h1bvis.supp ~ factor(group) + expl.prejud + impl.prejud, data = imm.wc)
+summary(threat.fit)
+summary(threat.fit)$r.squared
+  
+
+```
+
 ##### Question 4
+Besides economic and cultural threat, many scholars also argue that gender is an important predictor of immigration attitudes. While there is some evidence that women are slightly less opposed to immigration than men, it may also be true that gender conditions the very effect of other factors such as cultural threat. To see if it is indeed the case, fit a linear regression of H-1B support on the interaction between gender and implicit prejudice.
+
+```{r}
+gender.fit <- lm(h1bvis.supp ~ female * impl.prejud, data = imm.wc)
+summary(gender.fit)
+
+```
+
+Then, create a plot with the predicted level of H-1B support (y-axis) across the range of implicit bias (x-axis) by gender. Considering the results, would you agree that gender alters the relationship between cultural threat and immigration attitudes? 
+```{r}
+ggplot(imm.wc, aes(x = impl.prejud, y = h1bvis.supp))+
+  geom_point()+
+  geom_smooth(method = lm, formula = y ~ x)+
+  facet_wrap(~ female)
+```
+
+
+Age is another important covariate. Fit two regression models in which H-1B support is either a linear or quadratic function of age. Compare the results by plotting the predicted levels of support (y-axis) across the whole age range (x-axis). Would you say that people become more opposed to immigration with age?
+
+```{r}
+lfit.age <- lm(h1bvis.supp ~ age, data = imm.wc)
+qfit.age <- lm(h1bvis.supp ~ age + I(age^2), data = imm.wc)
+
+summary(lfit.age)
+summary(qfit.age)
+
+
+```
+
+```{r}
+ggplot(imm.wc, aes(x = age, y = h1bvis.supp))+
+  geom_point()+
+  geom_smooth(method = lm, formula = y ~ x)+
+  geom_smooth(method = lm, formula = y ~ x + I(x^2), color = "red")
+```
+
 ##### Question 5
-##### Question 6
