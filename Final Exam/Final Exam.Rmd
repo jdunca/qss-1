@@ -206,21 +206,46 @@ mun_fit3 <- lm(Y ~ factor(treatment) * factor(year), data = costs)
 summary(mun_fit3)
 ```
 
-```{r message=FALSE, warning=FALSE, results='asis'}
-stargazer(mun_fit, mun_fit2, mun_fit3)
+```{r message=FALSE, warning=FALSE, results="asis", echo=FALSE}
+stargazer::stargazer(mun_fit, mun_fit2, mun_fit3, type = "html", title = "Model Outputs")
 
 ```
 
 
 ##### Question 3
 The authors employed the Difference-in-differences (DiD) approach to estimate the change in administrative costs in control and treatment municipalities, before and after the reform.  
-Create a time-series plot of the mean outcome by year. The horizontal axis is the years whereas the vertical axis is the mean outcome. You should have two lines connecting data points (each data point should be marked by a symbol): one for the treatment group and the other for the control group. Add a vertical dashed line on the year 2007 so that the pre- and post-treatment periods are clear. Lastly, properly label x and y axies. Do not forget to use different colors and add text labels to differentiate two lines.
+Create a time-series plot of the mean outcome by year. The horizontal axis is the years whereas the vertical axis is the mean outcome. You should have two lines connecting data points (each data point should be marked by a symbol): one for the treatment group and the other for the control group. Add a vertical dashed line on the year 2007 so that the pre- and post-treatment periods are clear. Lastly, properly label x and y axes. Do not forget to use different colors 
+```{r message=FALSE, warning=FALSE}
+costs %>% 
+  select (Y, year, treatment) %>% 
+  group_by(year, treatment) %>% 
+  summarise(mean.outcome = mean(Y)) %>% 
+  mutate(treatment = recode(treatment, "0" = "Not treated", "1" = "Treated")) %>% 
+  ggplot(aes(x = year, y = mean.outcome, group = treatment))+
+    geom_point(aes(shape = factor(treatment), colour = factor(treatment)))+
+    geom_line(aes(colour = factor(treatment)))+
+    geom_vline(xintercept= 2007, linetype="dashed", color = "grey")+
+    theme_minimal()+
+    theme(legend.title = element_blank(), legend.position = "top")+
+    labs(title = "Mean outcome by year", 
+       y = "Municipal spending", 
+       x = "Year")
+  
+```
+
 
 ##### Question 4
 What is the identification assumption for the DiD approach? Does the plot you created in the previous question confirm that the assumption is likely to hold in this application? Why or why not?
 
+##### Answer 4
+
+The identifying assumption for a DiD model is that the treated cities will display similar trends to the control cities if they aren't treated. The graph above indicates that both treated and non-treated municipalities display parallel trends for all years except the year when treatment began. This indicates to me that the assumption is likely to hold as the only visible divergence in trends occurs at the time of treatment.
+
 ##### Question 5 
 Using the data from years 2007 (the last year of pre-treatment period) and 2008 (the first year of posttreatment period), compute the DiD estimate of the effect of municipal merger on administrative costs. Report a point estimate as well as its 95% confidence interval. Briefly interpret the result.
+
+##### Answer 5
+
 
 ##### Question 6
 Above, we examined the validity of using the DiD estimator by a visual inspection. This question asks you to investigate the validity by calculating DiD estimates in pre-treatment periods (that is, conduct a placebo test). If the outcomes from both treated and control groups moved in tandem before the amalgamation happened, the DiD estimate should be zero. Follow the following steps to complete this question:  
