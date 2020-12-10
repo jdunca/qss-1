@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
 	warning = FALSE
 )
 library(tidyverse)
+library(broom)
 ```
 
 #### Section 1
@@ -21,7 +22,7 @@ Read the data into an data frame named electric.
 electric <- read_csv("electric-company.csv")
 ```
 
-What sort of variable has R assumed grade is? How will it be treated in a linear model if we use it as an independent variable? Under what circumstances would that be reasonable or unreasonable? Make a new variable from grade that is a factor.
+##### What sort of variable has R assumed grade is? How will it be treated in a linear model if we use it as an independent variable? Under what circumstances would that be reasonable or unreasonable? Make a new variable from grade that is a factor.
 ```{r}
 
 class(electric$grade)
@@ -31,21 +32,25 @@ electric$grade.fac <- as.factor(electric$grade)
 
 read_csv has assumed that "grade" is a "numeric variable"
 
-How will a linear model treat this new variable? Hint: You may find that summary illuminates the new data set.
+##### How will a linear model treat this new variable? Hint: You may find that summary illuminates the new data set.
 ```{r}
 summary(electric$grade.fac)
 
 ```
+Summary displays grade.fac as categories with distinct distributions.
 
-Finally, overwrite the existing treatment variable so that it is numerical: 1 when the class is treated and 0
+
+##### Finally, overwrite the existing treatment variable so that it is numerical: 1 when the class is treated and 0
 when not.
 ```{r}
 electric <- electric %>% #replace old df with new df
   mutate(treatment = if_else(treatment == "T", 1, 0)) #overwrite treatment: if the variable equals "T" put a 1, otherwise put a zero
 ```
 
+Done.
+
 ##### Question 2
-Let’s now consider the effect of treatment. First, fit a linear model that predict post.score with just treatment. Then fit a model uses your factor version of grade as well as treatment. 
+##### Let’s now consider the effect of treatment. First, fit a linear model that predict post.score with just treatment. 
 
 ```{r}
 fit.score <- lm(post.score ~ treatment, data = electric)
@@ -55,18 +60,22 @@ summary(fit.score)
 
 ```
 
+##### Then fit a model uses your factor version of grade as well as treatment.
 ```{r}
 
 fit.grade <- lm(post.score ~ treatment + grade.fac, data = electric)
 summary(fit.grade)
 
 ```
-Summarise both models in terms of how much of the variance in post.score they “explain” and the median size of their errors.  
+##### Summarise both models in terms of how much of the variance in post.score they “explain” and the median size of their errors.
+The first model suggests a weak but statistically significant positive relationship between treatment and post.score. The second model is more refined. It indicates that not only is treatment significantly positively related to post.score but that post.score is also strongly positively related to a student's grade-level at a higher magnitude than treatment.
 
-Now, consider each model’s treatment coefficient. Are the estimates of this coefficient different in the two models? Why do you think that is?
+##### Now, consider each model’s treatment coefficient. Are the estimates of this coefficient different in the two models? Why do you think that is?
+
+The coefficient figures are the same however the p-value indicates a stronger correlation in the second. This could be because the factor variable of grade level helps to explain away some of the variations in the treatment effect. I note that the median residual is much lower in the second model.
 
 ##### Question 3
-Now make another model that uses the factor version of grade and pre.score (the reading score before the year begins) to predict post.score. Is this model better? If so, in what ways?
+##### Now make another model that uses the factor version of grade and pre.score (the reading score before the year begins) to predict post.score. Is this model better? If so, in what ways?
 
 ```{r}
 fit.score <- lm(post.score ~ pre.score + grade.fac, data = electric)
@@ -76,6 +85,8 @@ summary(fit.score)
 fit.score$coefficients
 
 ```
+
+The models are measuring different things so it's hard to say that one is better than another in general. However, the differences are interesting. We can see that in the first, there is a strong positive relationship between grade level and post-score. In the second we see that trend inverted. My hypothesis is that by incorporating the pre.score, one can observe that there are diminishing returns year over year as grade increases get lower and lower. Moreover, the t-value for the pre.score variable and $R^2$ is higher for the second model indicating improved certainty. We can say that pre-score is a more reliable indicator of post-score than is treatment. That said, treatment still has a significant effect on post.score outcomes.
 
 ##### Question 4
 
@@ -87,56 +98,88 @@ Fit a linear model predicting post.score using treatment and pre.score for each 
   3. Print out the coefficient on treatment using the print() function.   
   4. Briefly comment on the result. There are now four treatment effects. How do they differ as grade increases?
   
-  
 ```{r}
-
-fit1 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 1)
-fit2 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 2)
-fit3 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 3)
-fit4 <- lm(post.score ~ treatment + pre.score, data = electric, subset = grade.fac == 4)
-
-fit1$coefficients
-fit2$coefficients
-fit3$coefficients
-fit4$coefficients
-
-```
-
-```{r}
-data_all <- electric
+data_all <- electric # two arguments
 grade_subset <- unique(electric$grade.fac)
 
-fit_reg <- function(df, param){
+fit_reg <- function(df, param){ #Define a function named fit_reg that returns the coefficient on treatment. The function should have two arguments: the entire data (data_all) and the grade (grade_subset).
   mod <- lm(post.score ~ treatment + pre.score, data = df, subset = grade == param)
+  modb <- mod$coefficients
 }
-
+#Use a for loop and call the fit_reg() function for each grade (1 to 4). Store what the fit_reg() function returns in a variable.
 for (i in grade_subset){ 
   model <- fit_reg(data_all, i)
-  print(model$coefficients) 
+  print(model)
 }
+
 ```
+This model confirms my above suspicion regarding the diminishing returns of educational programming.
 
 ##### Question 5
-Now let’s try to learn about separate grade effects in a single model. One way to do this is to interact
+##### Now let’s try to learn about separate grade effects in a single model. One way to do this is to interact
 treatment with grade. Here’s a general modeling principle:
 
-If you think the effect of variable A varies according to the values of variable B, then you should think of adding an interaction between A and B in your model Reminder: In the lm formula interface this amounts to adding an `A:B` term. For example, if A and B interact to predict Y then the formula would be `Y ~ A + B + A:B` which would fit the model $Yi = \beta_0 + \beta_AA_i + \beta_BB_i + \beta_{AB} (A_i × B_i) + \epsilon_i$ an alternative syntax to fit this model is `A*B`. So to fit the model above using this notation the formula is `Y ~ A * B`
+##### If you think the effect of variable A varies according to the values of variable B, then you should think of adding an interaction between A and B in your model Reminder: In the lm formula interface this amounts to adding an `A:B` term. For example, if A and B interact to predict Y then the formula would be `Y ~ A + B + A:B` which would fit the model $Yi = \beta_0 + \beta_AA_i + \beta_BB_i + \beta_{AB} (A_i × B_i) + \epsilon_i$ an alternative syntax to fit this model is `A*B`. So to fit the model above using this notation the formula is `Y ~ A * B`
 
-Since we always want to have A and B if we have an A:B term, the * notation makes sure we don’t forget any of them. But they are equivalent.   
+##### Since we always want to have A and B if we have an A:B term, the * notation makes sure we don’t forget any of them. But they are equivalent.   
 
-Fit a model of all the grades that includes pre.score, treatment, grade (factor version), the factor version of grade interacted with treatment, and the factor version of grade interacted with pre.score (this is called a fully interacted model). How would you construct grade-specific treatment effects from these coefficients? Show an example for grade 2.
+##### Fit a model of all the grades that includes pre.score, treatment, grade (factor version), the factor version of grade interacted with treatment, and the factor version of grade interacted with pre.score (this is called a fully interacted model). How would you construct grade-specific treatment effects from these coefficients? Show an example for grade 2.
 
 ```{r}
 fit.inter <- lm(post.score ~ grade.fac * treatment * pre.score, data = electric)
 
 summary(fit.inter)
+fit.inter
+
 ```
 
 ##### Question 6
-Use a bar plot to visualize the grade-specific treatment effects that you calculated in the previous question. Briefly interpret the result. Hint: You can make a bar plot using a barplot() function (textbook p.81)
+##### Use a bar plot to visualize the grade-specific treatment effects that you calculated in the previous question. Briefly interpret the result. Hint: You can make a bar plot using a barplot() function (textbook p.81)
+
 ```{r}
+list.mod <- vector("list", )
+
+
+for (i in grade_subset){ 
+  list.mod[[i]] <- fit_reg(data_all, i)
+  results <- list.mod
+}
+results
 
 ```
+
+```{r}
+results1 <- results[[1]] #extracting the numbers from the output
+results2 <- results[[2]]
+results3 <- results[[3]]
+results4 <- results[[4]]
+
+results1 <- tidy(results1)#cleaning and converting the output into a data frame.
+results2 <- tidy(results2)
+results3 <- tidy(results3)
+results4 <- tidy(results4)
+
+combined <- rbind(results1, results2, results3, results4) #combining into one data frame
+combined <- combined %>% # subsetting to pull just the treatment effects
+  filter(names == "treatment")
+
+```
+
+```{r}
+combined[1:4,1] <- paste(c(1:4)) #renaming the rows by grade
+
+```
+
+```{r}
+ggplot(combined, aes(x = names, y = x))+ #plotting the treatment effects by grade.
+  geom_bar(stat = "identity")+
+  xlab("grade")+
+  ylab("treatment effect")
+
+
+```
+
+Phew. Looking forward to figuring out how to do this more e3fficiently but here it is. The average treatment effect declines as grade increases.
 
 #### Section 2
 ```{r message=FALSE, warning=FALSE}
@@ -146,7 +189,7 @@ library(ggcorrplot)
 ```
 
 ##### Question 1
-Start by examining the distribution of immigration attitudes (as factor variables). What is the proportion of people who are willing to increase the quota for high-skilled foreign professionals (h1bvis.supp) or support immigration from India (indimm.supp)? 
+##### Start by examining the distribution of immigration attitudes (as factor variables). What is the proportion of people who are willing to increase the quota for high-skilled foreign professionals (h1bvis.supp) or support immigration from India (indimm.supp)? 
 ```{r}
 imm$h1bvis.supp <- as.factor(imm$h1bvis.supp)
 "h1bvis.supp"
@@ -158,9 +201,9 @@ imm$indimm.supp <- as.factor(imm$indimm.supp)
 prop.table(summary(imm$indimm.supp))
 
 ```
+As I interpret the 5 point scale, 6% of respondents were "very supportive" of H-1B visas and a further 10% were "supportive". Concurrently, 3% of respondents were strongly supportive of Indian immigration and 10% were supportive of it.
 
-
-Now compare the distribution of two distinct measures of cultural threat: explicit stereotyping about Indians (expl.prejud) and implicit bias against Indian Americans (impl.prejud). In particular, create a scatterplot, add a linear regression line to it, and calculate the correlation coefficient. Based on these results, what can you say about their relationship?
+##### Now compare the distribution of two distinct measures of cultural threat: explicit stereotyping about Indians (expl.prejud) and implicit bias against Indian Americans (impl.prejud). In particular, create a scatterplot, add a linear regression line to it, and calculate the correlation coefficient. Based on these results, what can you say about their relationship?
 
 ```{r}
 ggplot(imm, aes(x = expl.prejud, y = impl.prejud))+
@@ -170,30 +213,45 @@ ggplot(imm, aes(x = expl.prejud, y = impl.prejud))+
 fit.prejud <- lm(impl.prejud ~ expl.prejud, data = imm)
 summary(fit.prejud)
 
+cor.test(imm$impl.prejud, imm$expl.prejud)
+
 ```
 
+There is a weak positive relationship between explicit and implicit prejudice that is significant to 0.05. 
+
 ##### Question 2
-Compute the correlations between all four policy attitude and cultural threat measures. Do you agree that cultural threat is an important predictor of immigration attitudes as claimed in the literature?  
+##### Compute the correlations between all four policy attitude and cultural threat measures. Do you agree that cultural threat is an important predictor of immigration attitudes as claimed in the literature?  
 ```{r}
+
+imm$h1bvis.supp <- as.numeric(imm$h1bvis.supp) #converting to numbers
+imm$indimm.supp <- as.numeric(imm$indimm.supp)
+imm$expl.prejud <- as.numeric(imm$expl.prejud)
+imm$impl.prejud <- as.numeric(imm$impl.prejud)
+
 cordata <- imm %>% 
-  select(h1bvis.supp, indimm.supp, expl.prejud, impl.prejud) %>% 
-  cor_mat() %>% 
+  select(h1bvis.supp, indimm.supp, expl.prejud, impl.prejud) %>% #selecting relevant variables
+  cor_mat() %>% #running a correlation matrix
   print()
 
 ```
 
+I don't have all the information to agree or disagree with a broad generalization like cultural threat theory. The correlation matrix does support the common sense conclusion that people who display implicit and explicit bias against ethnic Indians are less likely to support immigration and (to a slightly lesser extent) H-1B visas.
 
-If the labor market hypothesis is correct, opposition to H-1B visas should also be more pronounced among those who are economically threatened by this policy such as individuals in the high-technology sector. At the same time, tech workers should not be more or less opposed to general Indian immigration because of any economic considerations. First, regress H-1B and Indian immigration attitudes on the indicator variable for tech workers (tech.whitcol). Do the results support the hypothesis? Is the relationship different from the one involving cultural threat and, if so, how?
+##### If the labor market hypothesis is correct, opposition to H-1B visas should also be more pronounced among those who are economically threatened by this policy such as individuals in the high-technology sector. At the same time, tech workers should not be more or less opposed to general Indian immigration because of any economic considerations. First, regress H-1B and Indian immigration attitudes on the indicator variable for tech workers (tech.whitcol). Do the results support the hypothesis? Is the relationship different from the one involving cultural threat and, if so, how?
 
 ```{r}
 tech.fit <- lm(tech.whitcol ~ h1bvis.supp + indimm.supp, data = imm)
 summary(tech.fit)
 ```
+Tech workers appear to be more opposed to H-1B visas than to Indian immigration in general. Neither estimate is statistically significant.
+
+
 ##### Question 3
 
 When examining hypotheses, it is always important to have an appropriate comparison group. One may argue that comparing tech workers to everybody else as we did in Question 2 may be problematic due to a variety of confounding variables (such as skill level and employment status). First, create a single factor variable group which takes a value of tech if someone is employed in tech, whitecollar if someone is employed in other “white-collar” jobs (such as law or finance), other if someone is employed in any other sector, and unemployed if someone is unemployed. Then, compare the support for H-1B across these conditions by using the linear regression. Interpret the results: is this comparison more or less supportive of the labor market hypothesis than the one in Question 2?   
 
 ```{r}
+imm.wc <- imm
 imm.wc$whitecollar[imm.wc$employed == 1] <- "other"
 imm.wc$whitecollar[imm.wc$employed == 0] <- "unemployed"
 imm.wc$whitecollar[imm.wc$tech.whitcol == 1] <- "tech"
@@ -204,8 +262,10 @@ imm.wc$whitecollar[imm.wc$nontech.whitcol == 1] <- "whitecollar"
 h1bfit <- lm(h1bvis.supp ~ factor(whitecollar), data = imm.wc)
 summary(h1bfit)
 ```
+None of these estimates is considered statistically significant, although the trend of tech workers specifically having less support for H-1B visas continues and is slightly intensified in this model.
 
-Now, one may also argue that those who work in the tech sector are disproportionately young and male which may confound our results. To account for this possibility, fit another linear regression but also include age and female as pre-treatment covariates (in addition to group). Does it change the results and, if so, how?
+
+##### Now, one may also argue that those who work in the tech sector are disproportionately young and male which may confound our results. To account for this possibility, fit another linear regression but also include age and female as pre-treatment covariates (in addition to group). Does it change the results and, if so, how?
 
 ```{r}
 
@@ -214,7 +274,9 @@ summary(h1bfit2)
 
 ```
 
-Finally, fit a linear regression model with all threat indicators (group, expl.prejud, impl.prejud) and calculate its R2. How much of the variation is explained? Based on the model fit, what can you conclude about the role of threat factors?
+In this model we have some significant p-values. Tech workers hold disproportionately negative views of H-1B visas measured as significant to 0.1. Age is negatively correlated with significance of 0.05. There is a significant negative relationship between gender (female) and support for the H-1B visas measured at 0.001.
+
+##### Finally, fit a linear regression model with all threat indicators (group, expl.prejud, impl.prejud) and calculate its R2. How much of the variation is explained? Based on the model fit, what can you conclude about the role of threat factors?
 
 ```{r}
 threat.fit <-  lm(h1bvis.supp ~ factor(group) + expl.prejud + impl.prejud, data = imm.wc)
@@ -223,9 +285,11 @@ summary(threat.fit)$r.squared
   
 
 ```
+Much more variation is explained by implicit and explicit prejudice. Explicit prejudice is significantly negatively correlated with support for H-1B at 0.001. Implicit prejudice is significantly negatively associated with support for H-1B at 0.01. this model explains xenophobia more effectively than the labour market indicators. In fact, group 1 (which captures all whitecollar workers) has a weakly significant (at 0.1) positive relationship with support for H-1B.
+
 
 ##### Question 4
-Besides economic and cultural threat, many scholars also argue that gender is an important predictor of immigration attitudes. While there is some evidence that women are slightly less opposed to immigration than men, it may also be true that gender conditions the very effect of other factors such as cultural threat. To see if it is indeed the case, fit a linear regression of H-1B support on the interaction between gender and implicit prejudice.
+##### Besides economic and cultural threat, many scholars also argue that gender is an important predictor of immigration attitudes. While there is some evidence that women are slightly less opposed to immigration than men, it may also be true that gender conditions the very effect of other factors such as cultural threat. To see if it is indeed the case, fit a linear regression of H-1B support on the interaction between gender and implicit prejudice.
 
 ```{r}
 gender.fit <- lm(h1bvis.supp ~ female * impl.prejud, data = imm.wc)
@@ -233,7 +297,9 @@ summary(gender.fit)
 
 ```
 
-Then, create a plot with the predicted level of H-1B support (y-axis) across the range of implicit bias (x-axis) by gender. Considering the results, would you agree that gender alters the relationship between cultural threat and immigration attitudes? 
+This model shows that support for H-1B is significantly negatively correlated at (0.01) with the female variable, meaning women are less likely to support the visa in this model by a larger margin than the model above. Implicit bias is strongly negatively correlated with support for H-1B at 0.001. The interaction between female and implicit bias interesting shows a less significant but positive relationship at 0.5, indicating that these negative correlations impact each other in ways that foster support for H-1B.
+
+##### Then, create a plot with the predicted level of H-1B support (y-axis) across the range of implicit bias (x-axis) by gender. Considering the results, would you agree that gender alters the relationship between cultural threat and immigration attitudes? 
 ```{r}
 ggplot(imm.wc, aes(x = impl.prejud, y = h1bvis.supp))+
   geom_point()+
@@ -241,8 +307,9 @@ ggplot(imm.wc, aes(x = impl.prejud, y = h1bvis.supp))+
   facet_wrap(~ female)
 ```
 
+This plot demonstrates that women are less influenced by implicit bias in their positions on H-1B.
 
-Age is another important covariate. Fit two regression models in which H-1B support is either a linear or quadratic function of age. Compare the results by plotting the predicted levels of support (y-axis) across the whole age range (x-axis). Would you say that people become more opposed to immigration with age?
+##### Age is another important covariate. Fit two regression models in which H-1B support is either a linear or quadratic function of age. Compare the results by plotting the predicted levels of support (y-axis) across the whole age range (x-axis). Would you say that people become more opposed to immigration with age?
 
 ```{r}
 lfit.age <- lm(h1bvis.supp ~ age, data = imm.wc)
@@ -259,6 +326,9 @@ ggplot(imm.wc, aes(x = age, y = h1bvis.supp))+
   geom_point()+
   geom_smooth(method = lm, formula = y ~ x)+
   geom_smooth(method = lm, formula = y ~ x + I(x^2), color = "red")
+
+
 ```
 
-##### Question 5
+The linear model indicates that people become less supportive of H-1B visas as they get older. The quadratic model indicates that it is slightly more complicated. the curve begins high at the younger end of the spectrum, descends and is lowest between 50 and 55 and begins to rise after the age of 60. The conclusion is more complex than "attitudes towards immigration decline with age".
+

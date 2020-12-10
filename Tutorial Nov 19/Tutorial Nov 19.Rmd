@@ -116,4 +116,94 @@ ggplot(model1.aug, aes(x=protest_gdelt, y=imf_divers)) +
   geom_point(aes(y = .fitted), shape = 2) + #predicted values
   theme_bw()
 ```
+```{r}
+
+model1 <- lm(imf_divers ~ oil_income_p + protest_gdelt + regime_vdem_supportsize + regime_capacity + debt_gdp,
+   data=resource)
+summary(model1)
+```
+
+```{r}
+sd(resource$regime_vdem_supportsize)*coef(model1)[4]
+```
+
+```{r message=FALSE, warning=FALSE}
+model1.pred <- predict(model1, interval = "prediction") #predicted/fitted values
+model1.data <- cbind(resource, model1.pred)
+model1.data
+```
+
+```{r}
+pdat <- expand.grid(regime_vdem_supportsize = seq(from = min(resource$regime_vdem_supportsize), to = max(resource$regime_vdem_supportsize), by=0.001), 
+                    oil_income_p = mean(resource$oil_income_p),
+                    protest_gdelt = mean(resource$protest_gdelt),
+                    regime_capacity = mean(resource$regime_capacity),
+                    debt_gdp = mean(resource$debt_gdp))
+
+pdat <- cbind(pdat, imf_divers = predict(model1, newdata=pdat, interval="confidence", ci.fit=T))
+
+ggplot(pdat, mapping = aes(x=regime_vdem_supportsize, y=imf_divers.fit)) +
+  geom_line(size = 2) +
+  geom_ribbon(aes(ymin = imf_divers.lwr, ymax = imf_divers.upr), alpha = .25) +
+  labs(x = "Support Size", y = "Predicted Export Concentration") +
+  theme_bw()
+```
+
+```{r}
+model2 <- lm(imf_divers ~ oil_income_p + protest_gdelt + regime_vdem_supportsize + regime_capacity + debt_gdp + regime_vdem_polcom + regime_vdem_polcom*regime_vdem_supportsize,
+   data=resource)
+
+summary(model2)
+```
+
+```{r}
+ggplot(resource, aes(x=regime_vdem_supportsize, y=imf_divers, color=regime_vdem_polcom)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point()
+```
+
+```{r}
+resource <- resource %>% relocate(imf_divers, .after=year)
+```
+
+```{r}
+model_list <- list()
+summary_list <- list()
+coef <- vector()
+adj_r <- vector()
+
+```
+
+```{r}
+for(i in 4:ncol(resource)) {                 
+  predictor_list <- colnames(resource)[4:i]    
+  model_list[[i - 3]] <- lm(imf_divers ~ ., resource[ , c("imf_divers", predictor_list)])
+  summary_list[[i - 3]] <- summary(model_list[[i-3]])
+  coef[i-3] <- summary_list[[i-3]]$coefficients[2,1] #oil income per capita coefficient
+  adj_r[i-3] <- summary_list[[i-3]]$adj.r.squared #pull Adj. R^2 for each model
+}
+
+texreg::htmlreg(summary_list, file="results.html")
+```
+
+
+```{r}
+rss <- deviance(model_list[[6]]) #RSS
+#sum(resid(model_list[[6]])^2) #RSS
+
+tss <- var(resource$imf_divers)*(nrow(resource)-1) #TSS
+
+r2 <- 1 - (rss/tss)
+summary_list[[6]]$r.squared
+```
+
+```{r}
+for (i  in 1:5){
+  print(knitr::kable(
+    anova(model_list[[i]], model_list[[i+1]])
+  ))
+}
+
+library(knitr)
+```
 

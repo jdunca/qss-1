@@ -1,0 +1,256 @@
+---
+title: "PS9"
+author: "Jamie Duncan"
+date: "27/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+library(plm)
+mom.money <- read_csv("yu2017sample.csv")
+
+```
+
+#### Section 1
+##### Question 1: How many different women are in the data? How many observations per year? We will refer to each row as a ‘person-year observation’ since the row contains data on a given person in a particular year. In a few sentences, describe one advantage and one disadvantage of using a contemporary cohort of women rather than an older cohort in estimating the predictors of the mother wage gap.
+
+```{r}
+length(unique(mom.money$PUBID))
+```
+There are 1569 women featured in the panel data
+
+```{r}
+summary(as.factor(mom.money$year))
+median(summary(as.factor(mom.money$year)))
+mean(summary(as.factor(mom.money$year)))
+```
+
+The number of observations per year ranges between a minimum of 374 in 1997 to a maximum of 1293 in 2002. The median number of observations per year is 1235 and the average number of observations is 1142.6. One advantage of using a contemporary cohort approach is that the trends are as current as possible. A disadvantage is that long-term effects may be missed with a contemporary cohort.
+
+##### Question 2: `numChildren` is the variable representing how many children the woman had at the time of an observation. Please provide a table that shows the proportion of observations by the number of children. Provide a brief substantive interpretation of the results.
+
+```{r}
+numChild <- as.data.frame(round(prop.table(table(mom.money$numChildren)), 4))
+numChild[,1] <- as.numeric(numChild[,1])
+numChild
+
+
+
+```
+
+64% of the observations indicate that the participants have no children. A further 18% of respondents have 1 child, 12% have 2 children and 4% have 3 children at the the times of response. 1 percent or fewer women have 4 or more children. This downward trend is visualized below.
+
+```{r}
+ggplot(numChild, aes(x = Freq, y = Var1))+
+  geom_line()+
+  labs(title = "Proportion of observations by the number of children")+
+  xlab("Number of children")+
+  ylab("Proportion of observations")
+```
+
+##### Question 3: Create a new indicator variable `isMother` that takes a value of 1 if the woman has at least one child in that year and a value of 0 otherwise. Tabulate the new variable. Briefly comment on the results.
+
+```{r}
+mom.money <- mom.money %>% 
+  mutate(isMother = if_else(numChildren >= 1, 1, 0))
+
+mean(mom.money$isMother, na.rm = T)
+
+```
+
+`isMother` has a mean of 0.36 which is consistent with the finding above that 64% of observed women are not mothers.
+
+##### Question 4: Create a new variable called `logwage` that is the log of `wage`. Make two boxplots, one for `wage` and the other for `logwage`, as a function of educational level (`educ`). Compare the two boxplots and discuss the purpose of the log transformation.
+
+```{r}
+mom.money <- mom.money %>% 
+  mutate(logwage = log(wage))
+
+par(mfrow = c(1, 2))
+boxplot(mom.money$wage ~ mom.money$educ, main = "Boxplot of wage", ylab= "Logwage", xlab = "Educational attainment")
+boxplot(mom.money$logwage~ mom.money$educ, main = "Boxplot of logged wage", ylab= "Logwage", xlab = "Educational attainment")
+
+```
+
+The boxplot for wage (unlogged) is heavily skewed by outlier high earning women. This obscures real variations among the wages of more typical research participants. By logging the data (as in the boxplot on the right) we can see that the skew from the outlier income has been smoothed out to allow us to see the differences that exist among lower earners. This reveals an unserprising thrend that a participants' typical income increases with higher levels of education.
+
+##### Question 5: In the same graph, plot the mean `logwage` against year for mothers, then for non-mothers in a different color or line type. Include a legend and a proper title. Make sure the figure and axes are clearly labeled. Give a brief interpretation of the results.
+```{r message=FALSE, warning=FALSE}
+mom.money %>%
+  select(logwage, isMother, year) %>% 
+  group_by(isMother, year) %>% 
+  summarise(m.logwage = mean(logwage)) %>% 
+  mutate(isMother = recode(isMother, "0" = "No children", "1" = "Children")) %>% 
+  filter(!isMother == "NA") %>% 
+  ggplot(aes(x = year, y = m.logwage, group = isMother, colour = factor(isMother)))+
+  geom_line()+
+  theme_minimal()+
+  theme(legend.title = element_blank(), legend.position = "top")+
+  labs(title = "Income disaggregated by parental status and year", 
+       y = "Logged income", 
+       x = "")
+
+
+```
+While women with and without children start with very similar incomes, over time those without children earn higher incomes than those with children.
+
+##### Question 6: Run a regression using fixed effects for both `woman` and `year`. You should be sure to include variables for number of children (`numChildren`) and job characteristics (`fullTime`, `firmSize`, `multipleLocations`, `unionized`, `industry`). Note: that you should not use the `isMother` variable you created earlier in this model. Report the coefficient of `numChildren`. Provide a brief substantive interpretation of this coefficient and the coefficients for any two other variables.
+
+```{r}
+fixfit <- plm(logwage ~ numChildren + fullTime + firmSize + multipleLocations + unionized + industry + factor(year), data = mom.money, index=c("PUBID"), model="within")
+summary(fixfit)
+```
+
+**Thanks to Laura for helping me figure out what the heck a fixed effects model is and for forwarding me the plm package**  
+We can observe a negative correlation of -0.05 with significance at 0.001. This tells us that for each unit increase of logincome, the women in the study are expected to have 5% fewer children. We see various other significant interactions related to firmsize, the number of locations, whether a position is unionized, and the industry. For example, each unit increase of logwage is positively correlated with a firm of over 300 people by 0.1 and with multiple locations by 0.07 both at 0.001 significance. This means that as women are paid more, they are more likely to work for larger employers with more physical locations. As there is no gender comparison 
+
+##### Question 7: Add interactions between `numChildren` and `regularity` and between `numChildren` and `hazardous` to the model in the previous question. Report the five coefficients involving these variables. Interpret the interaction term for numChldren and hazardous. Can we interpret the effect of occupation characteristics on motherhood wage penalty as causal? Why or why not?
+
+```{r}
+
+fixfit2 <- plm(logwage ~ numChildren * regularity * hazardous + fullTime + firmSize + multipleLocations + unionized + industry + factor(year), data = mom.money, index=c("PUBID", "year"), model="within")
+summary(fixfit2)
+
+```
+The interaction model explains away a lot of the significance in the number of children coefficient. We now have a coefficient of 0.2 but at 0.1 significance, which probably wouldn't be worth reporting in an academic paper as an interesting finding. Regarding he interaction terms, we see that on their own, hazardousness and regularity of work produce no significant effect. Regularity interacted with number of children produces a coefficient of -0.19, while hazardous work interacted with number of children produces -0.14. Both are modestly significant at 0.05. The number of children interacted with both regularity and hazardous produces a coefficient of 0.1 with weak significance at 0.1. The interaction effects show that there is a type of woman in the data set that both has more children and higher income; that individual will more likely have regular and more hazardous work. This insight is not very significant so it would require additional inquiry to determine the qualities of this type of person.
+
+##### Question 8: Compare and interpret the adjusted R2 of the linear models in Question 6 and Question 7. If we wanted to predict the wage an out-of-sample person-year observation, which model would we prefer to use?
+
+The adjusted $R^2$ for the first model is 0.38 and the adjusted $R^2$ for the second model is 0.39. Typically the higher the $R^2$ is associated with a more accurate model. On this basis I conclude that the second model is the closest fit and thus the model that I would prefer to use.
+
+#### Section 2
+```{r message=FALSE, warning=FALSE}
+bk16 <- read.csv("broockman_kalla_2016.csv")
+```
+
+##### Question 1: First, load broockman_kalla_2016.csv into R and explore the data. How many observations are there? This file includes all of the people that the researchers attempted to contact. As we’ve learned, experiments also experience this noncompliance. However, many of these people did not even respond to the baseline survey before the experiment was conducted. As such, we are not be able to estimate how the treatment changed these individuals’ attitudes, since we don’t know where they were to begin with. To deal with these people who were never reached, subset your data so that you are only looking at people who have a valid (non-NA) answer for therm_trans_t0, which was collected in the pre-treatment baseline study. How many observations are you left with? How many are assigned to treatment? Placebo? What do these numbers tell us about the randomization process? You should use this subset for the rest of this questions in this part of the exam.
+
+```{r}
+summary(bk16)
+
+```
+
+There are 68378 observations in the data set, although a large majority are incomplete cases (meaning there are NAs)
+
+```{r}
+bk.t0 <- bk16 %>% 
+  filter(therm_trans_t0 >= 0)
+length(bk.t0$therm_trans_t0)
+summary(bk.t0)
+
+```
+There are 1825 entries for `therm_trans_t0`. Treatment is split evenly with a mean of 0.5 for participants both treated and non-treated, which indicates participants were randomized effectively though we can check that more precisely.
+
+```{r}
+bk.t0 %>% 
+  group_by(treat_ind) %>% 
+  summarise(median(vf_age, na.rm = T), mean(vf_democrat), mean(vf_female))
+
+```
+
+We can see that the treated group is older with a median age of 50, which is 3 years higher than the control group. The treated group is also about 3% less likely to identify as a Democrat. Lastly, there is a 1% lower proportion of female identified respondents in the treated group. The randomization is not exact.
+
+```{r}
+"Treated"
+prop.table(summary(factor(bk.t0$vf_racename[bk.t0$treat_ind == 1])))
+"Control"
+prop.table(summary(factor(bk.t0$vf_racename[bk.t0$treat_ind == 0])))
+```
+
+The distribution of participants by race is more even between the treatment and control groups.
+
+##### Question 2: To examine the effect of these conversations, Broockman and Kalla compared how people in the treatment and placebo groups evaluated transgender people on a specific type of survey question called a “feeling thermometer,” where respondents indicate where their feelings fall on a scale of 0 (very cold) to 100 (very warm). Further, to measure whether the changes persisted, Broockman and Kalla also conducted follow-up surveys up to 3 months after the original treatment. Thus, Brookman and Kalla’s study required reaching participants in multiple ways: both for a face-to-face interaction where the treatment would be delivered and through multiple follow-up surveys where the long-term effects of the treatment could be measured. We would like to further check that noncompliance did not meaningfully affect our randomization, since the basis of calculating our treatment effect depends on this. To do this, we can conduct a placebo test to ensure that the average level of support (our outcome) is not meaningfully different between the treatment and control groups before treatment was administered (during the baseline survey). Conduct a t-test on support before treatment was administered (t = 0) between the treatment and control groups among the subset of people you calculated in question 1. Construct a 95% confidence interval around your estimate. If the null hypothesis is no difference between the two groups, can you reject the null hypothesis?
+
+```{r}
+therm.tt <- t.test(therm_trans_t0 ~ treat_ind, data = bk.t0)
+therm.tt
+
+```
+
+The 95% confidence interval straddles zero meaning that I cannot reject the null hypothesis.
+
+```{r}
+diff(therm.tt$estimate)
+```
+The difference in means is about 0.66.
+
+##### Question 3: To simplify our analysis, we will focus on the average treatment effects among the treated (ATT). Kalla and Broockman experienced noncompliance in their study, where individuals assigned to the treatment group refused to engage in conversations with canvassers. Because accounting for this noncompliance statistically is beyond the scope of this class, we will look only at the cases where treatment was actually delivered. In contrast, Broockman and Kalla estimate the average treatment effect of compliers (adjusting for compliance rates). They also include many covariates; we will only include a few. For these reasons and others, our estimates may differ slightly. Next, let’s see if the attitudes in the treatment and placebo changed after the treatment was administered and for how long these differences lasted. Perform four difference-in-means calculations—one for each wave (t = 1, 2, 3, 4). When performing each test, remove any NAs in that wave. (These NAs might arise from participants failing to complete different waves of the surveys—a process that social scientists call attrition—or for other reasons.) For example, for wave 1, use all cases that don’t have missing outcome data in wave 1, and in wave 2, use all cases that don’t have missing outcome data in wave 2 (in the t.test() function, you can accomplish this with the na.action = na.omit argument). Construct 95% confidence intervals for your estimates. At each stage, do we reject or retain the null hypothesis that no difference between the two groups exists? You are welcome to use t.test() to calculate these differences and the confidence intervals, but pick one comparison and calculate the estimates by hand (the techniques in Section 7.1 of QSS may be helpful).
+
+```{r}
+tt1 <- t.test(therm_trans_t1 ~ treat_ind, data = bk.t0, na.action = na.omit)
+tt2 <- t.test(therm_trans_t2 ~ treat_ind, data = bk.t0, na.action = na.omit)
+tt3 <- t.test(therm_trans_t3 ~ treat_ind, data = bk.t0, na.action = na.omit)
+tt4 <- t.test(therm_trans_t4 ~ treat_ind, data = bk.t0, na.action = na.omit)
+
+```
+
+```{r}
+tt1
+
+diff(tt1$estimate)
+```
+
+For treatment wave 1, the t.test indicates that there are significant results. The p value indicates significance at 0.01 and zero does not fall within the confidence intervals. The estimated average treatment effect is 6.8%.
+
+```{r}
+tt2
+
+diff(tt2$estimate)
+```
+
+For treatment wave 2, zero is included in the confidence intervals so we cannot reject the null hypothesis. The p-value would indicate significance at 0.1. The estimated treatment effect is 4.49%
+
+```{r}
+tt3
+
+diff(tt3$estimate)
+```
+ For treatment wave 3, we see a p-value of less than 0.01 and confidence intervals that no not include zero so we can reject the null hypothesis and conclude that the average treatment effect of 6.23 is significant.
+ 
+```{r}
+tt4
+
+diff(tt4$estimate)
+```
+For treatment wave 4, we see a p-value of less than 0.1 and confidence intervals that include zero, meaning we cannot reject the null hypothesis and attribute significance to the estimated treatment effect of 5.3%.
+
+```{r}
+mu1 <- mean(bk.t0$therm_trans_t3, na.rm = T)
+mu2 <- mean(bk.t0$treat_ind, na.rm = T)
+sd1 <- sd(bk.t0$therm_trans_t3, na.rm = T)
+sd2 <- sd(bk.t0$treat_ind, na.rm = T)
+n1 <- length(bk.t0$therm_trans_t3)
+n2 <- length(bk.t0$treat_ind)
+se <- sqrt(sd1*sd1/n1+sd2*sd2/n2)
+err <- qt(0.975,df=pmin(n1,n2)-1)*se
+
+
+lower <- (mu1-mu2)-err
+upper <- (mu1-mu2)+err
+lower
+upper
+```
+
+The manually calculated confidence intervals for the third wave are slightly different than those calculated by the t-test but are not **that** far off. I suspect this is because of the difference between na.omit and na.rm but I could be wrong...
+
+##### Question 4:Let’s focus on the difference-in-means test at time t = 1. If the null hypothesis is that there is no difference between the groups, what would it mean to make a type I error? What would it mean to make a type II error? If we did something to increase the statistical power of the study, would we increase or decrease the probability of a type II error?
+
+To make a type 1 error would be to erroneously reject the null hypothesis that there is no difference between the groups. To make a type II error would be to fail to reject the null hypothesis when it is correct. Increasing the power of the study decreases the likelihood of a type II error.
+
+##### Question 5: Finally, let’s approximate the estimation strategy used by Broockman and Kalla in their analysis. To estimate the average treatment effect, they use a regression framework. Regress the feeling thermometer dependent variable (measure at time t = 3) on treatment assignment. To further alleviate concerns of imbalances between treatment and control groups, adjust for an individual’s feeling thermometer scores at time t = 0, her age, gender, race, and political party. Further, to account for possible differences between the more than 50 canvassers, please include in your model a fixed effect (i.e., dummy variable) for each canvasser. What is the estimated treatment effect (be sure to mention units)? Is this estimate statistically significant at the 0.05 level? Conduct the same analysis for surveys three months after treatment (t = 4) and compare the effects and statistical significance. Provide a substantive interpretation of the results.
+
+```{r}
+summary(lm(therm_trans_t3 ~ treat_ind + therm_trans_t0 + vf_age + vf_racename + vf_female + vf_democrat + factor(canvasser_id), data = bk.t0))
+```
+
+The treatment effect when taking into account the range of variables asked for is 5.73, which is slightly lower than the treatment effect of 6.23 calculated above with a t-test. The estimate is significant at the 0.01 level.
+
+```{r}
+summary(lm(therm_trans_t4 ~ treat_ind + therm_trans_t0 + vf_age + vf_racename + vf_female + vf_democrat + factor(canvasser_id), data = bk.t0))
+```
+
+In this model with the 4th stage of treatments we obtain an estimated treatment effect of 4.51 that is weakly significant at the level of 0.1. As with the third treatment this number is slightly lower than the effect calculated by t-test (5.3). In both models we can see that certain canvassers can impact the results of the experiment, although one would have to interrogate how large of a sample each canvasser is responsible for. Moreover, we see that in the 3rd stage model that gender is shown to have a positive impact on the `trans_therm` variable measured at 5.78 that is significant to 0.01, whereas in the 4th stage model this goes down to 3.49 with an non-significant p-value. In both models there is a significant effect of the pre-treatment at 0.001 of 0.61 and 0.66 respectively. Overall, it appears that the effects of treatment diminish over time.
+
