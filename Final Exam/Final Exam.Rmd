@@ -17,7 +17,7 @@ library(kableExtra)
 A scholar wants to research the effect of import competition on firms’ lobbying behavior. She gathers data on a series of firms. For each firm, she has a measure of imports in that firm’s sector and the number of times that the firm has lobbied a minister for protection. She regresses lobbying on imports and describes the results as a causal effect of imports on lobbying. Describe the assumptions she has to make for this claim to hold. Do you believe them?
 
 ##### Answer 1
-She is assuming that there are not other factors that would impact the rate at which firms lobby ministers and the import rate. For example, the sector of a given firm, the political party of the minister, and where iumports are coming from might all explain away or nuance this purported causal effect. I would be more inclined to believe this claim if it were tested against a variety of potentially confounding factors and it was determined that this model was the best fit. Moreover, I would need to understand how the study was randomized before believing any causal claims/ estimates it might make.
+They are assuming that there are not other factors that would impact the rate at which firms lobby ministers and the import rate. For example, the sector of a given firm, the political party of the minister, and where imports are coming from might all explain away or nuance this purported causal effect. I would be more inclined to believe this claim if it were tested against a variety of potentially confounding factors and it was determined that this model was the best fit. Moreover, I would need to understand how the study was randomized before believing any causal claims/ estimates it might make.
 
 ##### Question 2
 Another scholar conducted a survey with simple random sampling of 1,000 Canadians. He asked three demographic questions, and wants to combine them into a single variable with distinct values for all possible combinations. The number of response categories are:  
@@ -29,15 +29,17 @@ How many unique values of this variable are possible? Is he likely to find at le
 ##### Answer 2
 
 ```{r}
-product <- choose(1000, 6) * choose(1000, 3) * choose(1000, 13)
-lproduct <- lchoose(1000, 6) * lchoose(1000, 3) * lchoose(1000, 13)
-formatC(product, format = "f", digits = 0)
-lproduct
+product <- choose(1000, 6) * choose(1000, 3) * choose(1000, 13) # multiplying the possible combinations for each category
+lproduct <- lchoose(1000, 6) * lchoose(1000, 3) * lchoose(1000, 13) #logging that porcess because the number is going to be huge
+
+
+formatC(product, format = "f", digits = 0) #forcing the unlogged number to output in standard notation
+lproduct #outputting the logged number
 
 
 ```
 
-The number of possible combinations is so high that my brain can't comprehend. Likewise the chances of having one of every possible combination are even less comprehensible but are verrry close to zero.
+The number of possible combinations is so high that my brain can't comprehend. The chances of having one of every possible combination are even less comprehensible but are verrry close to zero.
 
 ##### Question 3
 Imagine you are a professor in a Master’s program that is very demanding. You are planning to expand it, and so are reviewing your admissions data to try to make sure that the students you admit can succeed. Previously, students were admitted if the sum of their undergraduate GPA (on a 4 point scale) and the quality of their letters of recommendation (also on a 4 point scale) was greater than 5.5. You find that regressing the students Master’s GPA on their letter score produces a coefficient of -.15. How would you interpret this? As you expand the program, how would you use this information to reform the admissions process?
@@ -45,16 +47,7 @@ Imagine you are a professor in a Master’s program that is very demanding. You 
 BONUS Simulate the admissions process described here if there is no relationship between letter quality and GPA. Plot the resulting distribution of GPA and letter quality among the admitted students.
 
 ##### Answer 3
-The output of this binomial regression indicates that, on average, for each 1 point rise in an applicant's GPA, their letters will decrease by 0.15. In general, a higher GPA means that students have excelled in their coursework while good letters indicate that a student has a capacity to build relationships with more experienced academics. Both are essential qualities for success in a graduate program and in professional life. To me this is a prime case for the introduction of a more holistic analysis of applicants. Both the recommendation letters and in many cases the grades are the products of inconsistent and incomparable qualitative assessments. An above-average statistics student will have been graded differently than an above-average student in classics -- both could bring something valueable to a graduate social sciences program. A student who attended a small liberal arts college will look different than one who attended an enormous institution like U of T (in my view, there is a better chance the former can write effectively). In short, there is no guarantee that the data has been generated consistently. It is on this basis that I would recommend the admissions process move towards using these quantitative metrics to set a lower limit on admissions and then making further admissions decisions qualitatively on the basis of each candidate's personal, academic, and professional experiences.
-
-##### BONUS Answer
-
-```{r}
-
-
-
-```
-
+The output of this regression indicates that, on average, for each 1 point rise in an applicant's GPA, their letter score will decrease by 0.15. In general, a higher GPA means that students have excelled in their coursework while good letters indicate that a student has a capacity to build relationships with more experienced academics. Both are essential qualities for success in a graduate program and in professional life. To me this is a prime case for the introduction of a more holistic analysis of applicants. Both the recommendation letters and in many cases the grades are the products of inconsistent and incomparable qualitative assessments. An above-average statistics student will have been graded differently than an above-average student in classics -- both could bring something valuable to a graduate social sciences program. A student who attended a small liberal arts college will look different than one who attended an enormous institution like U of T (in my view, there is a better chance the former can write effectively). In short, there is no guarantee that the data has been generated consistently. It is on this basis that I would recommend the admissions process move towards using these quantitative metrics to set a lower threshold for admissions and then making further decisions qualitatively on the basis of each candidate's personal, academic, and professional experiences.
 
 ##### Question 4
 A group of scholars ran a field experiment in which they gave voters information on politicians. In the control condition, they simply provided the names and party affiliations of candidates for a regional assembly on a postcard. In the treatment condition, the postcard also provided information about the candidates’ positions on a series of issues. They then observed whether the addressees of the postcards voted. Using the information below, calculate and interpret the p-value of the estimated average treatment effect (use the Normal approximation and a two-sided test).
@@ -73,16 +66,21 @@ y0 <- 0.46
 y1 <- 0.5
 
 
-n0dist <- rbinom(n0, 1, y0)
+n0dist <- rbinom(n0, 1, y0) #generating binomial distributions according to the provided samples sizes and probabilities
 n1dist <- rbinom(n1, 1, y1)
 
-var(n0dist)
+"Variances"
+var(n0dist) #ensuring the variances ar not equal
 var(n1dist)
 
 
-test <- t.test(n0dist, n1dist, alternative = "two.sided", var.equal = FALSE)
+test <- t.test(n0dist, n1dist, alternative = "two.sided", var.equal = FALSE) #t-test to 
 
+
+"T-test"
 test
+
+"Difference in means"
 diff(test$estimate)
 
 
@@ -99,8 +97,8 @@ In that same period, there were 24 elections, of which Liberals won 15. If I bel
 
 ```{r}
 
-liberals <- rbinom(10000, 76, prob = (50/76))
-t.test(liberals, mu = 0.5 * 76)
+liberals <- rbinom(10000, 76, prob = (50/76)) #gerating a random distribution according to the number of years in office and the given probability
+t.test(liberals, mu = 0.5 * 76) #testing that distribution against the null hypothesis
 
 
 ```
@@ -109,8 +107,8 @@ We can reject the null hypothesis that there is an even chance of gaining power 
 ##### Answer 5b
 
 ```{r}
-liberals_el <- rbinom(10000, 24, prob = (15/24))
-t.test(liberals_el, mu = 0.5 * 24)
+liberals_el <- rbinom(10000, 24, prob = (15/24)) #generating a distribution according to the given ratio of elections won
+t.test(liberals_el, mu = 0.5 * 24) #testing that distirbutions against the null hypothesis
 
 ```
 We can continue to reject the null hypothesis that there is an even chance of gaining power between the liberals and conservatives. The liberal mean of 15 is 3 higher than the null mean of 12, which is not included in the confidence intervals. The p-value indicates a highly significant positive relationship indicating the liberals are more likely to be in officewin each election.
@@ -133,19 +131,19 @@ That way, respondents can answer yes and the interviewer cannot tell whether a r
 Assume that respondents follow this procedure correctly. How would you use a sample of responses obtained with this procedure to estimate the share of the population who answered yes? Now assume that you have reason to believe that 20% of the population holds that attitude. For an individual respondent who answered “Yes,” what should your belief be about the probability that that respondent holds the attitude?
 
 ##### Answer 7
-This is a randomized response methodology. We know the probability of a truthful response in this case is 0.5. So if we take the proportion of people who say no and double it, we can then subtratc that number from 100 and have an accurate picture of how many respondents truthfully answered yes. For example, let's say we are asking people whether they participate in far-right internet forums if 40% of the respondents say no, that really means that 80% of truthful responses are no leaving us with 20% of respondents who do actually participate in far right internet forums.
+This is a randomized response methodology. We know the probability of a truthful response in this case is 0.5. So if we take the proportion of people who say no and double it, we can then subtract that number from 100 and have an accurate picture of how many respondents truthfully answered yes. For example, let's say we are asking people whether they participate in far-right internet forums if 40% of the respondents say no, that really means that 80% of truthful responses are no leaving us with 20% of respondents who do actually participate in far right internet forums. While that math was simple, you could take a more explicitly Bayesian approach if it were more complicated say, using dice or a less intuitive probability.
 
 ##### Question 8
 Pick a quantitative paper that makes a causal claim in your favorite research area. Describe and critically evaluate the authors’ identification strategy in 1-2 paragraphs. Provide proper citation so I can read the paper.
 
 ##### Answer 8
-Terman, R. (2017). Islamophobia and media portrayals of Muslim women: A computational text analysis of US news coverage. **International Studies Quarterly, 61**(3), 489-502.
+Terman, R. (2017). Islamophobia and media portrayals of Muslim women: A computational text analysis of US news coverage. *International Studies Quarterly, 61*(3), 489-502.
 
-In this paper Terman uses 35 years of news coverage from **The New York Times** and **The Washington Post** to test two related hypotheses: "H1a:Muslim women are more likely to make the news if they live in societies that violate their rights. H1b:Non-Muslim women are more likely to make the news if they live in societies that respect their rights". and "H2:All else equal, coverage of Muslim women focuses more on “women's rights and gender discrimination” than coverage of non-Muslim women". Pairing structural topic modeling with a statistical analysis of key development metrics measuring gender equality, Terman makes the causal claim that American news coverage propagates perceptions that Muslims are inherently sexist. Terman cites literature on public opinion, media effects, and cultural threat theory but does not make any specific claims about media effects on public attitudes caused by this framing. Rather she claims that well documented stereotypes about Islam are reflected in US news as a because of confirmation bias.  
+In this paper Terman uses 35 years of news coverage from *The New York Times* and *The Washington Post* to test two related hypotheses: "H1a:Muslim women are more likely to make the news if they live in societies that violate their rights. H1b:Non-Muslim women are more likely to make the news if they live in societies that respect their rights". and "H2:All else equal, coverage of Muslim women focuses more on “women's rights and gender discrimination” than coverage of non-Muslim women". Pairing structural topic modeling with a statistical analysis of key development metrics of gender equality, Terman makes the causal claim that American news coverage propagates perceptions that Muslims are inherently sexist. Terman cites literature on public opinion, media effects, and cultural threat theory but is careful not to make any specific claims about media effects on public attitudes caused by this framing. Rather she claims that well documented stereotypes about Islam are reflected in US news because of confirmation bias.  
 
 In testing H1, Terman pairs probit and negative binomial regressions to test the interaction effects between statistics on a country's women's rights record, whether it is located in the Middle East, the proportion of the population that is Muslim, and the quality of coverage that features women against the dependent variable of the likelihood of receiving media coverage. Terman concludes that "the effect of women's rights protections on the likelihood of coverage depends on whether the observation constitutes a Muslim (MENA) country. Muslim societies that violate women's rights garner special attention, while the reverse holds for non-Muslim societies." Terman also finds support for H2. This time regressing the percentage of coverage with a women's rights focus (as detected by the topic model) against a women's rights index and the proportion of the population that is Muslim. Terman finds that "US news media talk more about “Women's Rights and Gender Equality” if the reported country lies in the MENA region or has a larger Muslim population, regardless of the status of women's rights on the ground."
 
-For both models, Terman includes a range of potentially confounding variables and alternative (and more simplistic) metrics to adress any potential critiques of the topic model. Terman's central causal claim that the coverage from two of the largest news outlets is impacted by orientalist and gendered confirmation bias is statistically supported. That causal claim is bolstered through Terman's work to situate it in a variety of related scholarship, which demonstrates the rigor of the assumptions underlying the study (that Muslims are stereotyped as more sexist than non-Muslims). 
+For both models, Terman includes a range of potentially confounding variables and alternative (and more simplistic) metrics to address any potential critiques of the topic model. Terman's central causal claim that orientalist and gendered confirmation bias on behalf of media professionals causes differential standards of coverage that amplify negative portrayals of Muslim countries is statistically supported. That causal claim is bolstered through Terman's work to situate it in a variety of related scholarship, which demonstrates the rigor of the assumptions underlying the study (in particular that Muslims are stereotyped as more sexist than non-Muslims). 
 
 ##### Question 9
 Consider a population $X \sim U(0.5, 3)$. If you randomly sampled N observations from that population, what is the expected value for the number of observations for which $X = 2$?     
@@ -153,18 +151,28 @@ Consider a population $X \sim U(0.5, 3)$. If you randomly sampled N observations
 Solving for the expected value of $z = \frac{1}{X}$ requires a bit of calculus, so let’s do the R way. For every N from 10 to 10,000, simulate a vector of X and calculate $\overline{z}$. Then, plot $\overline{z}$ across the values of N. What does it converge to?
 
 ##### Answer 9
+This question has me pretty confused but I'll take a crack. Things I think I know about this question:
+ - $X \sim U(0.5, 3)$ refers to a uniform distribution that I could simulate with `runif(n, .5, 3)` if $X=2$. I could also calculate the PDF with `dunif(2, 0.5, 3)` or the CDF with `punif(2, 0.5, 3)`
+ - The formula for z-score is $Z = \frac{x - \mu}{\sigma}$
+ 
 ```{r}
-
-
+n <- 10000
+x9 <- 2
+xdist <- runif(10000,.5,3)
+mu <- mean(xdist)
+sig <- sd(xdist)
+z <- (x9 - mu)/ sig 
+z
 
 ```
-
  
+ This is a z-score. I know I could also run a for loop but I have an essay to write so I'm gonna see what partials I can get for the above. Thanks and sorry!
+
 ##### Question 10
 This lawsuit (link) is an attempt by the Attorney General of Texas to overturn the presidential election results in Wisconsin, Michigan, Pennsylvania, and Georgia. Paragraphs 9-11 (page 6-7) contain some claims relevant to this class. How do you think they came up with the claim they make there? Does it seem plausible? Why or why not?
 
 ##### Answer 10
-The misinformation captured in this lawsuit made it's way onto social media and now many people are writing about it. At first I was hoping it was a misuse of Zipf's law or something like that. Sadly it was more basic. Dr. Charles Cicchetti provided a declaration describing his "hypothesis testing and calculation of Z-scores and p-values" of the voting trends, comparing the early results with the results that came in many days later [Politifact](https://www.politifact.com/factchecks/2020/dec/10/facebook-posts/texas-lawsuit-statistics-fraud-wisconsin-michigan/). The most glaring flaw in Cicchetti's Declaration is his assumption that voter behaviour is uniformly distributed -- that voters in different places and of different political leanings will act the same way. The claim that the chances of Biden having won the four key states of Georgia, Michigan, Pennsylvania, and Wisconsin is less than 1 in 1 quadrillion rests on the erroneous assumption that the in-person votes counted on election day would have the same distribution as those that were mailed in and counted in the subsequent days. In this particular election, Democratic voters happened to be more in touch with the reality that this pandemic is dangerous. The Biden camp encouraged it's voters to mail in their ballots so they wouldn't die. This means that Democratic votes would have been concentrated in the post-election counts, thus explaining the so-called "blue wave". While the US electorate may be divided relatively evenly, that doesn't mean we can use `rbinom` to predict the election results.
+The misinformation captured in this lawsuit made it's way onto social media and now many people are writing about it. Dr. Charles Cicchetti provided a declaration describing his "hypothesis testing and calculation of Z-scores and p-values" of the voting trends, comparing the early results with the results that came in many days later [(Politifact)](https://www.politifact.com/factchecks/2020/dec/10/facebook-posts/texas-lawsuit-statistics-fraud-wisconsin-michigan/). The most glaring flaw in Cicchetti's Declaration is his assumption that voter behaviour is randomized -- that voters in different places and of different political leanings will act the same way. The claim that the chances of Biden having won the four key states of Georgia, Michigan, Pennsylvania, and Wisconsin is less than 1 in 1 quadrillion rests on the erroneous assumption that the in-person votes counted on election day would have the same distribution as those that were mailed in and counted in the subsequent days. In this particular election, Democratic voters happened to be more in touch with the reality that this pandemic is dangerous. The Biden camp encouraged it's voters to mail in their ballots so they wouldn't die. This means that Democratic votes would have been concentrated in the post-election counts, thus explaining the so-called "blue wave". While the US electorate may be divided relatively evenly, that doesn't mean we can use `rbinom` to predict the election results.
 
 #### Section 2
 ##### Question 1
@@ -172,11 +180,12 @@ We begin by loading the data and complete the following tasks. First, check if t
 
 ##### Answer 1
 ```{r}
-costs <- read.csv("admin_costs.csv")
-summary(costs)
+costs <- read.csv("admin_costs.csv") #loading the data
+summary(costs) #summarizing to check for NAs
 ```
 
 ```{r message=FALSE, warning=FALSE}
+## I want to see the average outcome grouped by region
 costs %>%  
   group_by(region) %>% 
   summarise(mean(Y))
@@ -192,22 +201,30 @@ Looking at the results from the third regression, and using only the coef functi
 
 ##### Answer 2
 ```{r}
-mun_fit <- lm(Y ~ factor(treatment), data = costs)
+mun_fit <- lm(Y ~ factor(treatment), data = costs) #fitting a model with treatment as a fixed effect
 summary(mun_fit)
 ```
+This model gives us a treatment effect of -624 with a p-score of less than 0.001. The residuals show a slight skew positive. The Adjusted $R^2$ is 0.52.
+
 
 ```{r}
-mun_fit2 <- lm(Y ~ factor(treatment)+ factor(year), data = costs)
+mun_fit2 <- lm(Y ~ factor(treatment)+ factor(year), data = costs) # adding a fixed effect for year
 summary(mun_fit2)
 ```
+When we add year as a factor, we see that spending is associeted with higher costs in years after treatement. This is likely because amagamated municipalies will cost most overall (even though there are less of them). We see p values that vary but that are considered statistically significant in all years but 2011. Residuals still skew positive but slighlty less so and the adjusted $R^2$ is a higher at 0.56.
+
 
 ```{r}
-mun_fit3 <- lm(Y ~ factor(treatment) * factor(year), data = costs)
+mun_fit3 <- lm(Y ~ factor(treatment) * factor(year), data = costs) #adding an interaction effect 
 summary(mun_fit3)
 ```
 
+When we add interaction effects between year and treatment the positive skew of the residuals increases slightly. We continue to observe a strong negative treatment effect but it has gone down to minus 481. We also observe that the interactions between treatment and year are only significant in the years after treatment. In this years we observe negative relationships spendiung and treatment in the years 2008-2011. The $R^2$ is higher than the other two models at 58 indicating this model is the best fit.
+
+##### BONUS Answer 2
+
 ```{r message=FALSE, warning=FALSE, results="asis", echo=FALSE}
-stargazer::stargazer(mun_fit, mun_fit2, mun_fit3, type = "html", title = "Model Outputs")
+stargazer::stargazer(mun_fit, mun_fit2, mun_fit3, type = "html", title = "Model Outputs") #putting the models into stargazer
 
 ```
 
@@ -216,18 +233,18 @@ stargazer::stargazer(mun_fit, mun_fit2, mun_fit3, type = "html", title = "Model 
 The authors employed the Difference-in-differences (DiD) approach to estimate the change in administrative costs in control and treatment municipalities, before and after the reform.  
 Create a time-series plot of the mean outcome by year. The horizontal axis is the years whereas the vertical axis is the mean outcome. You should have two lines connecting data points (each data point should be marked by a symbol): one for the treatment group and the other for the control group. Add a vertical dashed line on the year 2007 so that the pre- and post-treatment periods are clear. Lastly, properly label x and y axes. Do not forget to use different colors 
 ```{r message=FALSE, warning=FALSE}
-costs %>% 
-  select (Y, year, treatment) %>% 
-  group_by(year, treatment) %>% 
-  summarise(mean.outcome = mean(Y)) %>% 
-  mutate(treatment = recode(treatment, "0" = "Not treated", "1" = "Treated")) %>% 
-  ggplot(aes(x = year, y = mean.outcome, group = treatment))+
-    geom_point(aes(shape = factor(treatment), colour = factor(treatment)))+
-    geom_line(aes(colour = factor(treatment)))+
-    geom_vline(xintercept= 2007, linetype="dashed", color = "grey")+
-    theme_minimal()+
-    theme(legend.title = element_blank(), legend.position = "top")+
-    labs(title = "Mean outcome by year", 
+costs %>% ##piping in my data
+  select (Y, year, treatment) %>% #selecting the variables I want to work with
+  group_by(year, treatment) %>% #creating groups
+  summarise(mean.outcome = mean(Y)) %>% #calculating my mean variable within these groups 
+  mutate(treatment = recode(treatment, "0" = "Not treated", "1" = "Treated")) %>% # recoding the treatment variable for my legend
+  ggplot(aes(x = year, y = mean.outcome, group = treatment))+ #piping it into ggplot, indicating my axes and that the output should be grouped by treatment
+  geom_point(aes(shape = factor(treatment), colour = factor(treatment)))+ #indicating I want points in different shapes and colours for the two groups
+    geom_line(aes(colour = factor(treatment)))+ #I also want those points connected by a line in the same colour
+    geom_vline(xintercept= 2007, linetype="dashed", color = "grey")+ #inserting a vertical line at 2007
+    theme_minimal()+ #making it a little bit pretty
+    theme(legend.title = element_blank(), legend.position = "top")+ #The legend looks best at the top
+    labs(title = "Mean outcome by year", #A graph has to be labelled, of course. I probably wouldn't label the year in most cases but you asked.
        y = "Municipal spending", 
        x = "Year")
   
@@ -246,6 +263,26 @@ Using the data from years 2007 (the last year of pre-treatment period) and 2008 
 
 ##### Answer 5
 
+```{r}
+c1 <- costs %>% # new data frame starting with costs
+  select(year, Y, treatment) %>% #selecting relevant variables
+  filter(year == 2007 | year == 2008) #filtering out the two years I am interested in
+
+fit.c1 <- lm(Y ~ factor(year) * factor(treatment), data = c1) #fitting a model regresisng outcome against fixed effects for the year and treatment
+fit.c1.summ <- (summary(fit.c1)) #plugging the summary into a list
+fit.c1.summ$coefficients[4,1] #pulling out the difference in differences, which is the interacted coefficient
+
+```
+
+```{r}
+ci95 <- matrix(NA, ncol = 2, nrow = 1) #creating an empty matrix
+ci95[,1] <- fit.c1.summ$coefficients[4,1] - qnorm(0.975) * fit.c1.summ$coefficients[4,2] #calculating lower CI
+ci95[,2] <- fit.c1.summ$coefficients[4,1] + qnorm(0.975) * fit.c1.summ$coefficients[4,2] #and upper CI
+ci95 #printing them
+
+```
+
+Based on the above, we observe a difference in differences of -313 which falls within our confidence intervals of -464 and -162.
 
 ##### Question 6
 Above, we examined the validity of using the DiD estimator by a visual inspection. This question asks you to investigate the validity by calculating DiD estimates in pre-treatment periods (that is, conduct a placebo test). If the outcomes from both treated and control groups moved in tandem before the amalgamation happened, the DiD estimate should be zero. Follow the following steps to complete this question:  
@@ -253,3 +290,31 @@ Above, we examined the validity of using the DiD estimator by a visual inspectio
 1. Define a function named calc_did() that takes the following arguments: data (the dataframe used), pre_year (the pre-treatment time period used for the DiD estimation), and post_year (the posttreatment time period used for the DiD estimation). The calc_did() function returns a vector with three elements that correspond to the lower bound of the 95% confidence interval, the point estimate, and the upper bound of the 95% confidence interval.
 2. Use the function that you defined in the Step 1 and confirm that your answer is the same as the previous question. Run calc_did(data = data, pre_year = 2007, post_year = 2008).
 3. Check the following outcomes and briefly comment on the results: calc_did(data = data, pre_year = 2006, post_year = 2007) and calc_did(data = data, pre_year = 2005, post_year = 2006).
+
+##### Answer 6
+```{r}
+calc_did <- function(df, pre_year, post_year){ #creating a function
+  x <- df %>% #plugging in all of the code from the above question but replacing the data frame and years with their corresponding arguments in the function
+  select(year, Y, treatment) %>% 
+  filter(year == pre_year | year == post_year)
+
+fit.x <- lm(Y ~ factor(year) * factor(treatment), data = x)
+fit.x.s <- (summary(fit.x))
+c.vec <- vector() #creating an empty vector for the outputs
+c.vec[2] <- fit.x.s$coefficients[4,1]
+c.vec[1] <- fit.x.s$coefficients[4,1] - qnorm(0.975) * fit.x.s$coefficients[4,2] #lower CI
+c.vec[3] <- fit.x.s$coefficients[4,1] + qnorm(0.975) * fit.x.s$coefficients[4,2] #upper CI
+return(c.vec)
+}
+
+
+calc_did(costs, 2007, 2008)
+calc_did(costs, 2006, 2007)
+calc_did(costs, 2005, 2006)
+
+
+```
+We can see that in the years before treatment, one cannot reject the null hypothesis as the confidence intervals include zero. On the other hand, between 2007 and 2008 there is a large change that falls within the confidence intervals.
+
+
+
